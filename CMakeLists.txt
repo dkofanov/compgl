@@ -8,4 +8,5 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 add_subdirectory(third_party)
 add_subdirectory(graphics)
 add_subdirectory(main)
+add_subdirectory(main_llvm)
 
