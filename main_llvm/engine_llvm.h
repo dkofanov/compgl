@@ -11,7 +11,6 @@ struct EngineData
     char *world_mirror_;
     size_t w_w_;
     size_t w_h_;
-
 } ENG_DATA;
 
 void ENG_Check() {
@@ -28,7 +27,7 @@ void ENG_Check() {
     ENG_DATA.w_w_ = width;\
     ENG_DATA.w_h_ = height;
 
-int ENG_FillRandom(unsigned int seed)
+void ENG_FillRandom(unsigned int seed)
 {
     ENG_Check();
     srand(seed);
@@ -38,7 +37,7 @@ int ENG_FillRandom(unsigned int seed)
     return 0;
 }
 
-int ENG_IterateWorld(void (*callback)(char *data, size_t x, size_t y))
+void ENG_IterateWorld(void (*callback)(char *data, size_t x, size_t y))
 {
     ENG_Check();
     for (size_t i = 0; i < ENG_DATA.w_h_ * ENG_DATA.w_w_; i++) {
@@ -86,6 +85,64 @@ void ENG_DestroyWorld()
     ENG_DATA.world_mirror_ = NULL;
     ENG_DATA.w_w_ = 0;
     ENG_DATA.w_h_ = 0;
+}
+
+void CallbackDraw(char *data, size_t x, size_t y)
+{
+    if (*data) {
+        GR_PutPixel(x, y);
+    }
+}
+void CallbackFillMirror(char *data, size_t x, size_t y)
+{
+    if (ENG_IsBoundary(x, y)) {
+        ENG_SetMirrorCell(1, x, y);
+    } else {
+        ENG_SetMirrorCell(0, x, y);
+    }
+}
+
+void CallbackCalc(char *data, size_t x, size_t y)
+{
+    // Boundaries:
+    if (ENG_IsBoundary(x, y)) {
+        ENG_SetMirrorCell(0, x, y);
+        return;
+    }
+    // Count neighbours:
+    size_t xmin = x - 1, xmax = x + 1, ymin = y - 1, ymax = y + 1;
+    size_t count_alives = 0;
+    for (size_t i = 0; i < 3; i++) {
+        if (ENG_GetCell(x - 1 + i, ymax)) {
+            count_alives++;
+        }
+    }
+    for (size_t i = 0; i < 3; i++) {
+        if (ENG_GetCell(x - 1 + i, ymin)) {
+            count_alives++;
+        }
+    }
+    if (ENG_GetCell(xmin, y)) {
+        count_alives++;
+    }
+    if (ENG_GetCell(xmax, y)) {
+        count_alives++;
+    }
+
+    // Set Result
+    if (!ENG_GetCell(x, y)) {
+        if (count_alives == 3) {
+            ENG_SetMirrorCell(1, x, y);
+        } else {
+            ENG_SetMirrorCell(0, x, y);
+        }
+    } else {
+        if (count_alives == 3 || count_alives == 2) {
+            ENG_SetMirrorCell(1, x, y);
+        } else {
+            ENG_SetMirrorCell(0, x, y);
+        }
+    }
 }
 
 #endif  // ENGINE_H

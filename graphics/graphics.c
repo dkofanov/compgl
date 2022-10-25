@@ -23,7 +23,7 @@ struct {
 } GR_DATA;
 
 
-int GR_Initialize(size_t w_width, size_t w_height, size_t scale)
+void GR_Initialize(size_t w_width, size_t w_height, size_t scale)
 {
     assert(w_width % scale == 0);
     assert(w_height % scale == 0);
@@ -37,7 +37,7 @@ int GR_Initialize(size_t w_width, size_t w_height, size_t scale)
     {
         fprintf( stderr, "Failed to initialize GLFW\n" );
         getchar();
-        return -1;
+        return;
     }
 
     // Initialise GLFW
@@ -45,7 +45,7 @@ int GR_Initialize(size_t w_width, size_t w_height, size_t scale)
     {
         fprintf( stderr, "Failed to initialize GLFW\n" );
         getchar();
-        return -1;
+        return;
     }
 
     glfwWindowHint(GLFW_SAMPLES, 4);
@@ -60,7 +60,7 @@ int GR_Initialize(size_t w_width, size_t w_height, size_t scale)
         fprintf( stderr, "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n" );
         getchar();
         glfwTerminate();
-        return -1;
+        return;
     }
     glfwMakeContextCurrent(WINDOW);
     glfwSwapInterval(1);
@@ -71,7 +71,7 @@ int GR_Initialize(size_t w_width, size_t w_height, size_t scale)
         fprintf(stderr, "Failed to initialize GLEW\n");
         getchar();
         glfwTerminate();
-        return -1;
+        return;
     }
     glfwSetInputMode(WINDOW, GLFW_STICKY_KEYS, GL_TRUE);
 
@@ -94,8 +94,6 @@ int GR_Initialize(size_t w_width, size_t w_height, size_t scale)
     GR_DATA.vertices_mapped_buf_idx_ = 0;
 
     glClearColor(0.4f, 0.0f, 0.4f, 0.0f);
-
-    return 0;
 }
 
 static void GRstatic_DrawTriangle(GLfloat v[3][2])
@@ -165,7 +163,7 @@ void GR_Flush()
     return ;
 }
 
-int GR_Destroy() {
+void GR_Destroy() {
     // Cleanup VBO
     glDeleteBuffers(1, &GR_DATA.vertex_buffer_);
     glDeleteVertexArrays(1, &GR_DATA.vao_);
