@@ -34,7 +34,6 @@ void ENG_FillRandom(unsigned int seed)
     for (size_t i = 0; i < ENG_DATA.w_h_ * ENG_DATA.w_w_; i++) {
         ENG_DATA.world_[i] = ((rand() % 10) <= 1);
     }
-    return 0;
 }
 
 void ENG_IterateWorld(void (*callback)(char *data, size_t x, size_t y))
@@ -43,7 +42,6 @@ void ENG_IterateWorld(void (*callback)(char *data, size_t x, size_t y))
     for (size_t i = 0; i < ENG_DATA.w_h_ * ENG_DATA.w_w_; i++) {
         callback(&ENG_DATA.world_[i], (i % ENG_DATA.w_w_), (i / ENG_DATA.w_w_));
     }
-    return 0;
 }
 
 char ENG_IsBoundary(size_t x, size_t y)
