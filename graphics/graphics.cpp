@@ -2,6 +2,7 @@
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <chrono>
 #include "shader.hpp"
 
 #include "stdlib.h"
@@ -20,6 +21,9 @@ struct {
     size_t active_pixels_n_;
     GLfloat pxl_width_;
     GLfloat pxl_height_;
+
+    // FPS counter
+    std::chrono::time_point<std::chrono::high_resolution_clock> prev_frame_timestamp_;
 } GR_DATA;
 
 
@@ -48,6 +52,7 @@ void GR_Initialize(size_t w_width, size_t w_height, size_t scale)
         return;
     }
 
+    glfwWindowHint(GLFW_DOUBLEBUFFER, 0);
     glfwWindowHint(GLFW_SAMPLES, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -90,10 +95,11 @@ void GR_Initialize(size_t w_width, size_t w_height, size_t scale)
     const size_t max_triangles = pxl_count * 2;
     const size_t max_vertices = max_triangles * 3;
     glBufferData(GL_ARRAY_BUFFER, max_vertices * 3 * sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
-    GR_DATA.vertices_mapped_buf_ = glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+    GR_DATA.vertices_mapped_buf_ = static_cast <GLfloat *>(glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY));
     GR_DATA.vertices_mapped_buf_idx_ = 0;
 
     glClearColor(0.4f, 0.0f, 0.4f, 0.0f);
+    GR_DATA.prev_frame_timestamp_ = std::chrono::high_resolution_clock::now();
 }
 
 static void GRstatic_DrawTriangle(GLfloat v[3][2])
@@ -139,6 +145,12 @@ void GR_PutPixel(size_t x, size_t y)
 
 void GR_Flush()
 {
+    auto now = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> diff = now - GR_DATA.prev_frame_timestamp_;
+    double fps = 1. / diff.count();
+    printf("FPS: %lf (%lf us)\n", fps, diff.count() * 1000000); 
+    GR_DATA.prev_frame_timestamp_ = now;
+
     glClear( GL_COLOR_BUFFER_BIT );
     // Use shader:
     glUseProgram(GR_DATA.program_id_);
@@ -160,7 +172,7 @@ void GR_Flush()
 
     GR_DATA.active_pixels_n_ = 0;
     GR_DATA.vertices_mapped_buf_idx_ = 0;
-    return ;
+    return;
 }
 
 void GR_Destroy() {
@@ -171,6 +183,6 @@ void GR_Destroy() {
 
     // Close OpenGL window and terminate GLFW
     glfwTerminate();
-    return 0;
+    return;
 }
 

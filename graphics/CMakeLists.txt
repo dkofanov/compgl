@@ -3,7 +3,7 @@ include_directories(
     ../third_party/glew-1.13.0/include/
 )
 
-add_library(graphics SHARED graphics.c shader.cpp)
+add_library(graphics SHARED graphics.cpp shader.cpp)
 target_link_libraries(graphics
     ${OPENGL_LIBRARY}
     glfw

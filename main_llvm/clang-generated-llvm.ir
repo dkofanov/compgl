@@ -1,0 +1,379 @@
+
+%struct.EngineData = type { i8*, i8*, i64, i64 }
+
+@ENG_DATA = dso_local local_unnamed_addr global %struct.EngineData zeroinitializer, align 16, !dbg !0
+
+define dso_local void @_Z9ENG_Checkv() local_unnamed_addr #0 !dbg !265 {
+  %1 = load i8*, i8** getelementptr inbounds (%struct.EngineData, %struct.EngineData* @ENG_DATA, i64 0, i32 0), align 8, !dbg !267, !tbaa !269
+  %2 = icmp eq i8* %1, null, !dbg !275
+  br i1 %2, label %3, label %4, !dbg !276
+
+3:                                                ; preds = %0
+  tail call void @exit(i32 noundef -1) #14, !dbg !277
+  unreachable, !dbg !277
+
+4:                                                ; preds = %0
+  ret void, !dbg !279
+}
+
+declare dso_local void @exit(i32 noundef) local_unnamed_addr #1
+
+define dso_local noundef i32 @_Z14ENG_FillRandomj(i32 noundef %0) local_unnamed_addr #0 !dbg !280 {
+  call void @llvm.dbg.value(metadata i32 %0, metadata !284, metadata !DIExpression()), !dbg !287
+  tail call void @_Z9ENG_Checkv(), !dbg !288
+  tail call void @srand(i32 noundef %0) #15, !dbg !289
+  call void @llvm.dbg.value(metadata i64 0, metadata !285, metadata !DIExpression()), !dbg !290
+  %2 = load i64, i64* getelementptr inbounds (%struct.EngineData, %struct.EngineData* @ENG_DATA, i64 0, i32 3), align 8, !dbg !291, !tbaa !293
+  %3 = load i64, i64* getelementptr inbounds (%struct.EngineData, %struct.EngineData* @ENG_DATA, i64 0, i32 2), align 8, !dbg !294, !tbaa !295
+  %4 = mul i64 %3, %2, !dbg !296
+  %5 = icmp eq i64 %4, 0, !dbg !297
+  br i1 %5, label %6, label %7, !dbg !298
+
+6:                                                ; preds = %7, %1
+  ret i32 0, !dbg !299
+
+7:                                                ; preds = %1, %7
+  %8 = phi i64 [ %15, %7 ], [ 0, %1 ]
+  call void @llvm.dbg.value(metadata i64 %8, metadata !285, metadata !DIExpression()), !dbg !290
+  %9 = tail call i32 @rand() #15, !dbg !300
+  %10 = srem i32 %9, 10, !dbg !302
+  %11 = icmp slt i32 %10, 2, !dbg !303
+  %12 = zext i1 %11 to i8, !dbg !304
+  %13 = load i8*, i8** getelementptr inbounds (%struct.EngineData, %struct.EngineData* @ENG_DATA, i64 0, i32 0), align 8, !dbg !305, !tbaa !269
+  %14 = getelementptr inbounds i8, i8* %13, i64 %8, !dbg !306
+  store i8 %12, i8* %14, align 1, !dbg !307, !tbaa !308
+  %15 = add nuw i64 %8, 1, !dbg !309
+  call void @llvm.dbg.value(metadata i64 %15, metadata !285, metadata !DIExpression()), !dbg !290
+  %16 = load i64, i64* getelementptr inbounds (%struct.EngineData, %struct.EngineData* @ENG_DATA, i64 0, i32 3), align 8, !dbg !291, !tbaa !293
+  %17 = load i64, i64* getelementptr inbounds (%struct.EngineData, %struct.EngineData* @ENG_DATA, i64 0, i32 2), align 8, !dbg !294, !tbaa !295
+  %18 = mul i64 %17, %16, !dbg !296
+  %19 = icmp ult i64 %15, %18, !dbg !297
+  br i1 %19, label %7, label %6, !dbg !298, !llvm.loop !310
+}
+
+declare void @llvm.dbg.declare(metadata, metadata, metadata) #2
+
+declare !dbg !313 dso_local void @srand(i32 noundef) local_unnamed_addr #3
+
+declare void @llvm.lifetime.start.p0i8(i64 immarg, i8* nocapture) #4
+
+declare !dbg !314 dso_local i32 @rand() local_unnamed_addr #3
+
+declare void @llvm.lifetime.end.p0i8(i64 immarg, i8* nocapture) #4
+
+define dso_local noundef i32 @_Z16ENG_IterateWorldPFvPcmmE(void (i8*, i64, i64)* nocapture noundef readonly %0) local_unnamed_addr #5 !dbg !315 {
+  call void @llvm.dbg.value(metadata void (i8*, i64, i64)* %0, metadata !322, metadata !DIExpression()), !dbg !325
+  tail call void @_Z9ENG_Checkv(), !dbg !326
+  call void @llvm.dbg.value(metadata i64 0, metadata !323, metadata !DIExpression()), !dbg !327
+  %2 = load i64, i64* getelementptr inbounds (%struct.EngineData, %struct.EngineData* @ENG_DATA, i64 0, i32 3), align 8, !dbg !328, !tbaa !293
+  %3 = load i64, i64* getelementptr inbounds (%struct.EngineData, %struct.EngineData* @ENG_DATA, i64 0, i32 2), align 8, !dbg !330, !tbaa !295
+  %4 = mul i64 %3, %2, !dbg !331
+  %5 = icmp eq i64 %4, 0, !dbg !332
+  br i1 %5, label %6, label %7, !dbg !333
+
+6:                                                ; preds = %7, %1
+  ret i32 0, !dbg !334
+
+7:                                                ; preds = %1, %7
+  %8 = phi i64 [ %16, %7 ], [ %3, %1 ]
+  %9 = phi i64 [ %14, %7 ], [ 0, %1 ]
+  call void @llvm.dbg.value(metadata i64 %9, metadata !323, metadata !DIExpression()), !dbg !327
+  %10 = load i8*, i8** getelementptr inbounds (%struct.EngineData, %struct.EngineData* @ENG_DATA, i64 0, i32 0), align 8, !dbg !335, !tbaa !269
+  %11 = getelementptr inbounds i8, i8* %10, i64 %9, !dbg !337
+  %12 = urem i64 %9, %8, !dbg !338
+  %13 = udiv i64 %9, %8, !dbg !339
+  tail call void %0(i8* noundef %11, i64 noundef %12, i64 noundef %13), !dbg !340
+  %14 = add nuw i64 %9, 1, !dbg !341
+  call void @llvm.dbg.value(metadata i64 %14, metadata !323, metadata !DIExpression()), !dbg !327
+  %15 = load i64, i64* getelementptr inbounds (%struct.EngineData, %struct.EngineData* @ENG_DATA, i64 0, i32 3), align 8, !dbg !328, !tbaa !293
+  %16 = load i64, i64* getelementptr inbounds (%struct.EngineData, %struct.EngineData* @ENG_DATA, i64 0, i32 2), align 8, !dbg !330, !tbaa !295
+  %17 = mul i64 %16, %15, !dbg !331
+  %18 = icmp ult i64 %14, %17, !dbg !332
+  br i1 %18, label %7, label %6, !dbg !333, !llvm.loop !342
+}
+
+define dso_local noundef signext i8 @_Z14ENG_IsBoundarymm(i64 noundef %0, i64 noundef %1) local_unnamed_addr #6 !dbg !344 {
+  call void @llvm.dbg.value(metadata i64 %0, metadata !348, metadata !DIExpression()), !dbg !351
+  call void @llvm.dbg.value(metadata i64 %1, metadata !349, metadata !DIExpression()), !dbg !351
+  %3 = icmp eq i64 %0, 0, !dbg !352
+  %4 = icmp eq i64 %1, 0
+  %5 = or i1 %3, %4, !dbg !353
+  br i1 %5, label %15, label %6, !dbg !353
+
+6:                                                ; preds = %2
+  %7 = load i64, i64* getelementptr inbounds (%struct.EngineData, %struct.EngineData* @ENG_DATA, i64 0, i32 2), align 8, !dbg !354, !tbaa !295
+  %8 = add i64 %7, -1, !dbg !355
+  %9 = icmp eq i64 %8, %0, !dbg !356
+  br i1 %9, label %15, label %10, !dbg !357
+
+10:                                               ; preds = %6
+  %11 = load i64, i64* getelementptr inbounds (%struct.EngineData, %struct.EngineData* @ENG_DATA, i64 0, i32 3), align 8, !dbg !358, !tbaa !293
+  %12 = add i64 %11, -1, !dbg !359
+  %13 = icmp eq i64 %12, %1, !dbg !360
+  %14 = zext i1 %13 to i8, !dbg !357
+  br label %15, !dbg !357
+
+15:                                               ; preds = %10, %6, %2
+  %16 = phi i8 [ 1, %6 ], [ 1, %2 ], [ %14, %10 ]
+  call void @llvm.dbg.value(metadata i8 %16, metadata !350, metadata !DIExpression()), !dbg !351
+  ret i8 %16, !dbg !361
+}
+
+define dso_local void @_Z17ENG_SetMirrorCellcmm(i8 noundef signext %0, i64 noundef %1, i64 noundef %2) local_unnamed_addr #7 !dbg !362 {
+  call void @llvm.dbg.value(metadata i8 %0, metadata !366, metadata !DIExpression()), !dbg !369
+  call void @llvm.dbg.value(metadata i64 %1, metadata !367, metadata !DIExpression()), !dbg !369
+  call void @llvm.dbg.value(metadata i64 %2, metadata !368, metadata !DIExpression()), !dbg !369
+  %4 = load i8*, i8** getelementptr inbounds (%struct.EngineData, %struct.EngineData* @ENG_DATA, i64 0, i32 1), align 8, !dbg !370, !tbaa !371
+  %5 = load i64, i64* getelementptr inbounds (%struct.EngineData, %struct.EngineData* @ENG_DATA, i64 0, i32 2), align 8, !dbg !372, !tbaa !295
+  %6 = mul i64 %5, %2, !dbg !373
+  %7 = add i64 %6, %1, !dbg !374
+  %8 = getelementptr inbounds i8, i8* %4, i64 %7, !dbg !375
+  store i8 %0, i8* %8, align 1, !dbg !376, !tbaa !308
+  ret void, !dbg !377
+}
+
+define dso_local noundef signext i8 @_Z11ENG_GetCellmm(i64 noundef %0, i64 noundef %1) local_unnamed_addr #6 !dbg !378 {
+  call void @llvm.dbg.value(metadata i64 %0, metadata !380, metadata !DIExpression()), !dbg !382
+  call void @llvm.dbg.value(metadata i64 %1, metadata !381, metadata !DIExpression()), !dbg !382
+  %3 = load i8*, i8** getelementptr inbounds (%struct.EngineData, %struct.EngineData* @ENG_DATA, i64 0, i32 0), align 8, !dbg !383, !tbaa !269
+  %4 = load i64, i64* getelementptr inbounds (%struct.EngineData, %struct.EngineData* @ENG_DATA, i64 0, i32 2), align 8, !dbg !384, !tbaa !295
+  %5 = mul i64 %4, %1, !dbg !385
+  %6 = add i64 %5, %0, !dbg !386
+  %7 = getelementptr inbounds i8, i8* %3, i64 %6, !dbg !387
+  %8 = load i8, i8* %7, align 1, !dbg !387, !tbaa !308
+  ret i8 %8, !dbg !388
+}
+
+define dso_local void @_Z15ENG_SwapBuffersv() local_unnamed_addr #7 !dbg !389 {
+  call void @llvm.dbg.value(metadata i8* undef, metadata !391, metadata !DIExpression()), !dbg !392
+  %1 = load <2 x i8*>, <2 x i8*>* bitcast (%struct.EngineData* @ENG_DATA to <2 x i8*>*), align 16, !dbg !393, !tbaa !394
+  %2 = shufflevector <2 x i8*> %1, <2 x i8*> poison, <2 x i32> <i32 1, i32 0>, !dbg !395
+  store <2 x i8*> %2, <2 x i8*>* bitcast (%struct.EngineData* @ENG_DATA to <2 x i8*>*), align 16, !dbg !395, !tbaa !394
+  ret void, !dbg !396
+}
+
+define dso_local noundef i32 @_Z15ENG_ClearMirrorv() local_unnamed_addr #0 !dbg !397 {
+  tail call void @_Z9ENG_Checkv(), !dbg !401
+  call void @llvm.dbg.value(metadata i64 0, metadata !399, metadata !DIExpression()), !dbg !402
+  %1 = load i64, i64* getelementptr inbounds (%struct.EngineData, %struct.EngineData* @ENG_DATA, i64 0, i32 3), align 8, !dbg !403, !tbaa !293
+  %2 = load i64, i64* getelementptr inbounds (%struct.EngineData, %struct.EngineData* @ENG_DATA, i64 0, i32 2), align 16, !dbg !405, !tbaa !295
+  %3 = mul i64 %2, %1, !dbg !406
+  %4 = icmp eq i64 %3, 0, !dbg !407
+  br i1 %4, label %5, label %6, !dbg !408
+
+5:                                                ; preds = %6, %0
+  ret i32 0, !dbg !409
+
+6:                                                ; preds = %0, %6
+  %7 = phi i64 [ %10, %6 ], [ 0, %0 ]
+  call void @llvm.dbg.value(metadata i64 %7, metadata !399, metadata !DIExpression()), !dbg !402
+  %8 = load i8*, i8** getelementptr inbounds (%struct.EngineData, %struct.EngineData* @ENG_DATA, i64 0, i32 1), align 8, !dbg !410, !tbaa !371
+  %9 = getelementptr inbounds i8, i8* %8, i64 %7, !dbg !412
+  store i8 0, i8* %9, align 1, !dbg !413, !tbaa !308
+  %10 = add nuw i64 %7, 1, !dbg !414
+  call void @llvm.dbg.value(metadata i64 %10, metadata !399, metadata !DIExpression()), !dbg !402
+  %11 = load i64, i64* getelementptr inbounds (%struct.EngineData, %struct.EngineData* @ENG_DATA, i64 0, i32 3), align 8, !dbg !403, !tbaa !293
+  %12 = load i64, i64* getelementptr inbounds (%struct.EngineData, %struct.EngineData* @ENG_DATA, i64 0, i32 2), align 16, !dbg !405, !tbaa !295
+  %13 = mul i64 %12, %11, !dbg !406
+  %14 = icmp ult i64 %10, %13, !dbg !407
+  br i1 %14, label %6, label %5, !dbg !408, !llvm.loop !415
+}
+
+define dso_local void @_Z16ENG_DestroyWorldv() local_unnamed_addr #8 !dbg !417 {
+  call void @llvm.memset.p0i8.i64(i8* noundef nonnull align 16 dereferenceable(32) bitcast (%struct.EngineData* @ENG_DATA to i8*), i8 0, i64 32, i1 false), !dbg !418
+  ret void, !dbg !419
+}
+
+define dso_local void @_Z12CallbackDrawPcmm(i8* nocapture noundef readonly %0, i64 noundef %1, i64 noundef %2) #5 !dbg !420 {
+  call void @llvm.dbg.value(metadata i8* %0, metadata !422, metadata !DIExpression()), !dbg !425
+  call void @llvm.dbg.value(metadata i64 %1, metadata !423, metadata !DIExpression()), !dbg !425
+  call void @llvm.dbg.value(metadata i64 %2, metadata !424, metadata !DIExpression()), !dbg !425
+  %4 = load i8, i8* %0, align 1, !dbg !426, !tbaa !308
+  %5 = icmp eq i8 %4, 0, !dbg !426
+  br i1 %5, label %7, label %6, !dbg !428
+
+6:                                                ; preds = %3
+  tail call void @GR_PutPixel(i64 noundef %1, i64 noundef %2), !dbg !429
+  br label %7, !dbg !431
+
+7:                                                ; preds = %6, %3
+  ret void, !dbg !432
+}
+
+declare !dbg !433 dso_local void @GR_PutPixel(i64 noundef, i64 noundef) local_unnamed_addr #9
+
+define dso_local void @_Z18CallbackFillMirrorPcmm(i8* nocapture noundef readnone %0, i64 noundef %1, i64 noundef %2) local_unnamed_addr #7 !dbg !436 {
+  call void @llvm.dbg.value(metadata i8* %0, metadata !438, metadata !DIExpression()), !dbg !441
+  call void @llvm.dbg.value(metadata i64 %1, metadata !439, metadata !DIExpression()), !dbg !441
+  call void @llvm.dbg.value(metadata i64 %2, metadata !440, metadata !DIExpression()), !dbg !441
+  %4 = tail call noundef signext i8 @_Z14ENG_IsBoundarymm(i64 noundef %1, i64 noundef %2), !dbg !442, !range !444
+  tail call void @_Z17ENG_SetMirrorCellcmm(i8 noundef signext %4, i64 noundef %1, i64 noundef %2), !dbg !445
+  ret void, !dbg !446
+}
+
+define dso_local void @_Z12CallbackCalcPcmm(i8* nocapture readnone %0, i64 noundef %1, i64 noundef %2) #10 !dbg !447 {
+  call void @llvm.dbg.value(metadata i8* undef, metadata !449, metadata !DIExpression()), !dbg !461
+  call void @llvm.dbg.value(metadata i64 %1, metadata !450, metadata !DIExpression()), !dbg !461
+  call void @llvm.dbg.value(metadata i64 %2, metadata !451, metadata !DIExpression()), !dbg !461
+  %4 = tail call noundef signext i8 @_Z14ENG_IsBoundarymm(i64 noundef %1, i64 noundef %2), !dbg !462, !range !444
+  %5 = icmp eq i8 %4, 0, !dbg !462
+  br i1 %5, label %6, label %50, !dbg !464
+
+6:                                                ; preds = %3
+  %7 = add i64 %1, -1, !dbg !465
+  call void @llvm.dbg.value(metadata i64 %7, metadata !452, metadata !DIExpression()), !dbg !461
+  %8 = add i64 %1, 1, !dbg !466
+  call void @llvm.dbg.value(metadata i64 %8, metadata !453, metadata !DIExpression()), !dbg !461
+  call void @llvm.dbg.value(metadata i64 %22, metadata !454, metadata !DIExpression()), !dbg !461
+  %9 = add i64 %2, 1, !dbg !467
+  call void @llvm.dbg.value(metadata i64 %9, metadata !455, metadata !DIExpression()), !dbg !461
+  call void @llvm.dbg.value(metadata i64 0, metadata !456, metadata !DIExpression()), !dbg !461
+  call void @llvm.dbg.value(metadata i64 0, metadata !457, metadata !DIExpression()), !dbg !468
+  call void @llvm.dbg.value(metadata i64 0, metadata !457, metadata !DIExpression()), !dbg !468
+  call void @llvm.dbg.value(metadata i64 0, metadata !456, metadata !DIExpression()), !dbg !461
+  %10 = tail call noundef signext i8 @_Z11ENG_GetCellmm(i64 noundef %7, i64 noundef %9), !dbg !469
+  %11 = icmp ne i8 %10, 0, !dbg !469
+  %12 = zext i1 %11 to i64, !dbg !473
+  call void @llvm.dbg.value(metadata i64 %12, metadata !456, metadata !DIExpression()), !dbg !461
+  call void @llvm.dbg.value(metadata i64 1, metadata !457, metadata !DIExpression()), !dbg !468
+  call void @llvm.dbg.value(metadata i64 1, metadata !457, metadata !DIExpression()), !dbg !468
+  call void @llvm.dbg.value(metadata i64 %12, metadata !456, metadata !DIExpression()), !dbg !461
+  %13 = tail call noundef signext i8 @_Z11ENG_GetCellmm(i64 noundef %1, i64 noundef %9), !dbg !469
+  %14 = icmp ne i8 %13, 0, !dbg !469
+  %15 = zext i1 %14 to i64, !dbg !473
+  %16 = add nuw nsw i64 %12, %15, !dbg !473
+  call void @llvm.dbg.value(metadata i64 %16, metadata !456, metadata !DIExpression()), !dbg !461
+  call void @llvm.dbg.value(metadata i64 2, metadata !457, metadata !DIExpression()), !dbg !468
+  call void @llvm.dbg.value(metadata i64 2, metadata !457, metadata !DIExpression()), !dbg !468
+  call void @llvm.dbg.value(metadata i64 %16, metadata !456, metadata !DIExpression()), !dbg !461
+  %17 = add i64 %1, 1, !dbg !474
+  %18 = tail call noundef signext i8 @_Z11ENG_GetCellmm(i64 noundef %17, i64 noundef %9), !dbg !469
+  %19 = icmp ne i8 %18, 0, !dbg !469
+  %20 = zext i1 %19 to i64, !dbg !473
+  %21 = add nuw nsw i64 %16, %20, !dbg !473
+  call void @llvm.dbg.value(metadata i64 %21, metadata !456, metadata !DIExpression()), !dbg !461
+  call void @llvm.dbg.value(metadata i64 3, metadata !457, metadata !DIExpression()), !dbg !468
+  %22 = add i64 %2, -1, !dbg !475
+  call void @llvm.dbg.value(metadata i64 0, metadata !459, metadata !DIExpression()), !dbg !476
+  call void @llvm.dbg.value(metadata i64 %21, metadata !456, metadata !DIExpression()), !dbg !461
+  %23 = tail call noundef signext i8 @_Z11ENG_GetCellmm(i64 noundef %7, i64 noundef %22), !dbg !477
+  %24 = icmp ne i8 %23, 0, !dbg !477
+  %25 = zext i1 %24 to i64, !dbg !481
+  %26 = add nuw nsw i64 %21, %25, !dbg !481
+  call void @llvm.dbg.value(metadata i64 %26, metadata !456, metadata !DIExpression()), !dbg !461
+  call void @llvm.dbg.value(metadata i64 1, metadata !459, metadata !DIExpression()), !dbg !476
+  call void @llvm.dbg.value(metadata i64 1, metadata !459, metadata !DIExpression()), !dbg !476
+  call void @llvm.dbg.value(metadata i64 %26, metadata !456, metadata !DIExpression()), !dbg !461
+  %27 = tail call noundef signext i8 @_Z11ENG_GetCellmm(i64 noundef %1, i64 noundef %22), !dbg !477
+  %28 = icmp ne i8 %27, 0, !dbg !477
+  %29 = zext i1 %28 to i64, !dbg !481
+  %30 = add nuw nsw i64 %26, %29, !dbg !481
+  call void @llvm.dbg.value(metadata i64 %30, metadata !456, metadata !DIExpression()), !dbg !461
+  call void @llvm.dbg.value(metadata i64 2, metadata !459, metadata !DIExpression()), !dbg !476
+  call void @llvm.dbg.value(metadata i64 2, metadata !459, metadata !DIExpression()), !dbg !476
+  call void @llvm.dbg.value(metadata i64 %30, metadata !456, metadata !DIExpression()), !dbg !461
+  %31 = tail call noundef signext i8 @_Z11ENG_GetCellmm(i64 noundef %17, i64 noundef %22), !dbg !477
+  %32 = icmp ne i8 %31, 0, !dbg !477
+  %33 = zext i1 %32 to i64, !dbg !481
+  %34 = add nuw nsw i64 %30, %33, !dbg !481
+  call void @llvm.dbg.value(metadata i64 %34, metadata !456, metadata !DIExpression()), !dbg !461
+  call void @llvm.dbg.value(metadata i64 3, metadata !459, metadata !DIExpression()), !dbg !476
+  %35 = tail call noundef signext i8 @_Z11ENG_GetCellmm(i64 noundef %7, i64 noundef %2), !dbg !482
+  %36 = icmp ne i8 %35, 0, !dbg !482
+  %37 = zext i1 %36 to i64, !dbg !484
+  %38 = add nuw nsw i64 %34, %37, !dbg !484
+  call void @llvm.dbg.value(metadata i64 %38, metadata !456, metadata !DIExpression()), !dbg !461
+  %39 = tail call noundef signext i8 @_Z11ENG_GetCellmm(i64 noundef %8, i64 noundef %2), !dbg !485
+  %40 = icmp ne i8 %39, 0, !dbg !485
+  %41 = zext i1 %40 to i64, !dbg !487
+  %42 = add nuw nsw i64 %38, %41, !dbg !487
+  call void @llvm.dbg.value(metadata i64 %42, metadata !456, metadata !DIExpression()), !dbg !461
+  %43 = tail call noundef signext i8 @_Z11ENG_GetCellmm(i64 noundef %1, i64 noundef %2), !dbg !488
+  %44 = icmp eq i8 %43, 0, !dbg !488
+  br i1 %44, label %45, label %47, !dbg !490
+
+45:                                               ; preds = %6
+  %46 = icmp eq i64 %42, 3, !dbg !491
+  br label %50
+
+47:                                               ; preds = %6
+  %48 = and i64 %42, -2, !dbg !494
+  %49 = icmp eq i64 %48, 2, !dbg !494
+  br label %50
+
+50:                                               ; preds = %47, %45, %3
+  %51 = phi i1 [ false, %3 ], [ %46, %45 ], [ %49, %47 ]
+  %52 = zext i1 %51 to i8
+  tail call void @_Z17ENG_SetMirrorCellcmm(i8 noundef signext %52, i64 noundef %1, i64 noundef %2), !dbg !461
+  ret void, !dbg !497
+}
+
+define dso_local noundef i32 @main() local_unnamed_addr #11 !dbg !498 {
+  %1 = alloca [25000 x i8], align 16
+  %2 = alloca [25000 x i8], align 16
+  call void @llvm.dbg.value(metadata i64 5, metadata !500, metadata !DIExpression()), !dbg !509
+  tail call void @GR_Initialize(i64 noundef 1250, i64 noundef 500, i64 noundef 5), !dbg !510
+  %3 = getelementptr inbounds [25000 x i8], [25000 x i8]* %1, i64 0, i64 0, !dbg !511
+  call void @llvm.lifetime.start.p0i8(i64 25000, i8* nonnull %3) #15, !dbg !511
+  call void @llvm.dbg.declare(metadata [25000 x i8]* %1, metadata !501, metadata !DIExpression()), !dbg !511
+  call void @llvm.memset.p0i8.i64(i8* noundef nonnull align 16 dereferenceable(25000) %3, i8 0, i64 25000, i1 false), !dbg !511
+  %4 = getelementptr inbounds [25000 x i8], [25000 x i8]* %2, i64 0, i64 0, !dbg !511
+  call void @llvm.lifetime.start.p0i8(i64 25000, i8* nonnull %4) #15, !dbg !511
+  call void @llvm.dbg.declare(metadata [25000 x i8]* %2, metadata !506, metadata !DIExpression()), !dbg !511
+  call void @llvm.memset.p0i8.i64(i8* noundef nonnull align 16 dereferenceable(25000) %4, i8 0, i64 25000, i1 false), !dbg !511
+  store i8* %3, i8** getelementptr inbounds (%struct.EngineData, %struct.EngineData* @ENG_DATA, i64 0, i32 0), align 16, !dbg !511, !tbaa !269
+  store i8* %4, i8** getelementptr inbounds (%struct.EngineData, %struct.EngineData* @ENG_DATA, i64 0, i32 1), align 8, !dbg !511, !tbaa !371
+  store <2 x i64> <i64 250, i64 100>, <2 x i64>* bitcast (i64* getelementptr inbounds (%struct.EngineData, %struct.EngineData* @ENG_DATA, i64 0, i32 2) to <2 x i64>*), align 16, !dbg !511, !tbaa !512
+  %5 = call noundef i32 @_Z14ENG_FillRandomj(i32 noundef 222), !dbg !513
+  call void @llvm.dbg.value(metadata i64 0, metadata !507, metadata !DIExpression()), !dbg !514
+  br label %7, !dbg !515
+
+6:                                                ; preds = %7
+  call void @_Z16ENG_DestroyWorldv(), !dbg !516
+  call void @GR_Destroy(), !dbg !517
+  call void @llvm.lifetime.end.p0i8(i64 25000, i8* nonnull %4) #15, !dbg !518
+  call void @llvm.lifetime.end.p0i8(i64 25000, i8* nonnull %3) #15, !dbg !518
+  ret i32 0, !dbg !519
+
+7:                                                ; preds = %0, %7
+  %8 = phi i64 [ 0, %0 ], [ %12, %7 ]
+  call void @llvm.dbg.value(metadata i64 %8, metadata !507, metadata !DIExpression()), !dbg !514
+  %9 = call noundef i32 @_Z16ENG_IterateWorldPFvPcmmE(void (i8*, i64, i64)* noundef nonnull @_Z12CallbackCalcPcmm), !dbg !520
+  %10 = call noundef i32 @_Z16ENG_IterateWorldPFvPcmmE(void (i8*, i64, i64)* noundef nonnull @_Z12CallbackDrawPcmm), !dbg !523
+  call void @_Z15ENG_SwapBuffersv(), !dbg !524
+  call void @GR_Flush(), !dbg !525
+  %11 = call i32 @usleep(i32 noundef 300000), !dbg !526
+  %12 = add nuw nsw i64 %8, 1, !dbg !527
+  call void @llvm.dbg.value(metadata i64 %12, metadata !507, metadata !DIExpression()), !dbg !514
+  %13 = icmp eq i64 %12, 24999, !dbg !528
+  br i1 %13, label %6, label %7, !dbg !515, !llvm.loop !529
+}
+
+declare !dbg !531 dso_local void @GR_Initialize(i64 noundef, i64 noundef, i64 noundef) local_unnamed_addr #9
+
+declare void @llvm.memset.p0i8.i64(i8* nocapture writeonly, i8, i64, i1 immarg) #12
+
+declare !dbg !534 dso_local void @GR_Flush() local_unnamed_addr #9
+
+declare !dbg !535 dso_local i32 @usleep(i32 noundef) local_unnamed_addr #9
+
+declare !dbg !541 dso_local void @GR_Destroy() local_unnamed_addr #9
+
+declare void @llvm.dbg.value(metadata, metadata, metadata) #13
+
+attributes #0 = { mustprogress noinline nounwind uwtable "frame-pointer"="none" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+attributes #1 = { noreturn nounwind "frame-pointer"="none" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+attributes #2 = { mustprogress nofree nosync nounwind readnone speculatable willreturn }
+attributes #3 = { nounwind "frame-pointer"="none" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+attributes #4 = { argmemonly mustprogress nofree nosync nounwind willreturn }
+attributes #5 = { mustprogress noinline uwtable "frame-pointer"="none" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+attributes #6 = { mustprogress nofree noinline norecurse nosync nounwind readonly uwtable willreturn "frame-pointer"="none" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+attributes #7 = { mustprogress nofree noinline norecurse nosync nounwind uwtable willreturn "frame-pointer"="none" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+attributes #8 = { mustprogress nofree noinline norecurse nosync nounwind uwtable willreturn writeonly "frame-pointer"="none" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+attributes #9 = { "frame-pointer"="none" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+attributes #10 = { mustprogress nofree noinline norecurse nosync nounwind uwtable "frame-pointer"="none" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+attributes #11 = { mustprogress noinline norecurse uwtable "frame-pointer"="none" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+attributes #12 = { argmemonly mustprogress nofree nounwind willreturn writeonly }
+attributes #13 = { nofree nosync nounwind readnone speculatable willreturn }
+attributes #14 = { noreturn nounwind }
+attributes #15 = { nounwind }

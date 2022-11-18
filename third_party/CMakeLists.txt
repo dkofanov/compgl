@@ -49,3 +49,21 @@ target_link_libraries(GLEW_1130
     ${OPENGL_LIBRARY}
     ${EXTRA_LIBS}
 )
+
+### LLVM ###
+# Enable if there is a need to build llvm from scratch
+
+#[[
+set(LLVM_BUILD_LLVM_DYLIB true)
+add_subdirectory(llvm-project/llvm)
+include_directories(SYSTEM
+    ${CMAKE_CURRENT_SOURCE_DIR}/llvm-project/llvm/include/llvm
+)
+
+set(LLVM_DIR ${CMAKE_BINARY_DIR}/third_party/llvm-project/llvm)
+#find_package(LLVM REQUIRED CONFIG PATHS ${LLVM_DIR} NO_DEFAULT_PATH)
+message(LLVM_INCLUDE_DIRS: ${LLVM_INCLUDE_DIRS})
+message(LLVM_LIBRARY_DIRS: ${LLVM_LIBRARY_DIRS})
+message(LLVM_DEFINITIONS: ${LLVM_DEFINITIONS})
+message(LLVM_LIBRARIES: ${LLVM_LIBRARIES})
+#]]
