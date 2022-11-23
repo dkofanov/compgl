@@ -1,4 +1,6 @@
-#include "lexer_decls.h"
+#include "lang_main.h"
+
+IRGen IRG;
 
 int main(int argc, char *argv[])
 {
@@ -9,8 +11,11 @@ int main(int argc, char *argv[])
     if (file == nullptr) {
         return 2;
     }
+
     yydebug = 0;
     yyin = file;
-    yyparse();
+    IRG.CreateIR();
+    IRG.LaunchEE();
+
     return 0;
 }

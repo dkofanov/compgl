@@ -1,0 +1,14 @@
+{
+    Num a = 1;
+    Num b = 37;
+    Num c = a + b;
+    Num d = a + b * b;
+    Num e = a * b + b * c;
+    Num e = a * b + b * c;
+
+    a?;
+    b?;
+    c?;
+    d?;
+    e?;
+}
