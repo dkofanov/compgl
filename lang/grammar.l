@@ -16,6 +16,7 @@ using tok = Token;
 %token OP0
 %token OP1
 %token OP2
+%token COLON
 %token STATEMENT_TERMINATOR
 %token B_BEGIN
 %token E_BEGIN
@@ -39,15 +40,27 @@ STATEMENT_SEQ:
 
 STATEMENT:
     VAR_INITIALIZATION |
-    LOOP_WHILE |
+    IF_STATEMENT |
+    WHILE_STATEMENT |
     VAR_PRINT;
 
-LOOP_WHILE:
+WHILE_STATEMENT:
     WHILE E_BEGIN {
-        // Insert scope that incapsulates loop body and header:
+        // Insert scope that encapsulates loop body and header:
         __ BeginLinkedSB();
     } COMPARISON[cmp] E_END BB[bb] {
-        __ FinalizeLoopWhile($cmp, $bb);
+        __ FinalizeWhileStatement($cmp, $bb);
+        __ EndSB();
+    };
+
+IF_STATEMENT:
+    IF E_BEGIN {
+        // Insert scope that encapsulates if-comparison and cond-branch.
+        // Otherwise, we can't simply resolve the correct insert point for
+        // cond-branch.
+        __ BeginLinkedSB();
+    } COMPARISON[cmp] E_END BB[bb] {
+        __ FinalizeIfStatement($cmp, $bb);
         __ EndSB();
     };
 
@@ -77,8 +90,7 @@ VAR_DECL_SCOPE:
 
 VAR_PRINT:
     ID CONSOLE_OBSERVE_VAR {
-        auto typed_var_ref = __ ResolveVar($1);
-        __ CreateCallIntrinsicPrintVar(typed_var_ref.second);
+        __ CreateCallIntrinsicPrintVar($1);
     };
 
 ARITHM_EXPRESSION:

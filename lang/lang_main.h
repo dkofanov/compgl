@@ -64,10 +64,6 @@ public:
         return declared_types_[type];
     }
 
-    void CreateCallIntrinsicPrintVar(Value var_ref) {
-        __ CreateCall(GetFunc("PrintNum"), CreateArgs({var_ref}));
-    }
-
     void LaunchEE() {
         llvm::ExecutionEngine *ee = llvm::EngineBuilder(std::unique_ptr<llvm::Module>(module_)).create();
         ee->InstallLazyFunctionCreator([&](const std::string &fn) -> void *
@@ -80,12 +76,12 @@ public:
         std::vector<llvm::GenericValue> noargs;
         llvm::GenericValue gv = ee->runFunction(main_, noargs);
     }
-    static void PrintNum(void *ptr) {
+    static void PrintNum(void *ptr, char *name) {
         printf("0x");
         for (size_t i = 0; i < sizeof(token_t::Num); i++) {
-            printf("%hhx", *(static_cast<char *>(ptr) + i));
+            printf("%02hhX", *(static_cast<char *>(ptr) + i));
         }
-        std::cout << '(' << *(static_cast<token_t::Num *>(ptr)) << ')'  << std::endl;
+        std::cout << " (" << name << " = " << *(static_cast<token_t::Num *>(ptr)) << ')'  << std::endl;
     }
 protected:
     // Storage:
@@ -184,7 +180,9 @@ public:
         variables_scopes_stack_.push_back({});
         blocks_counter_ = 0;
         cur_f_ = main_;
-        yyparse();
+        if (yyparse() != 0) {
+            //abort();
+        }
         __ CreateRetVoid();
         variables_scopes_stack_.pop_back();
     }
@@ -224,18 +222,33 @@ public:
         return blocks_stack_.back();
     }
 
-    void FinalizeLoopWhile(tokcr_t cmp_tok, tokcr_t loop_body_tok) {
+    void FinalizeWhileStatement(tokcr_t cmp_tok, tokcr_t loop_body_tok) {
         auto loop_body = loop_body_tok.To<BB>();
         auto cmp = cmp_tok.To<Value>();
         auto loop_header = GetCurSBlock();
         auto continuation = CreateBB();
 
         // Link basic blocks:
-        // __ SetInsertPoint(loop_body);
+        // __ SetInsertPoint(...) should point to correct place for the backward jump:
         __ CreateBr(loop_header);
 
         __ SetInsertPoint(loop_header);
         __ CreateCondBr(cmp, loop_body, continuation);
+        __ SetInsertPoint(continuation);
+    }
+
+    void FinalizeIfStatement(tokcr_t cmp_tok, tokcr_t if_body_tok) {
+        auto if_body = if_body_tok.To<BB>();
+        auto cmp = cmp_tok.To<Value>();
+        auto if_header = GetCurSBlock();
+        auto continuation = CreateBB();
+
+        // Link basic blocks:
+        // __ SetInsertPoint(...) should point to correct place for the backward jump:
+        __ CreateBr(continuation);
+
+        __ SetInsertPoint(if_header);
+        __ CreateCondBr(cmp, if_body, continuation);
         __ SetInsertPoint(continuation);
     }
 
@@ -318,6 +331,18 @@ public:
             default: UNREACHABLE();
         }
         return __ CreateICmp(pred, lhs.To<Value>(), rhs.To<Value>());
+    }
+
+    void CreateCallIntrinsicPrintVar(tokcr_t var_tok) {
+        auto typed_var_ref = ResolveVar(var_tok);
+        const char *name = var_tok.To<Id>().c_str();
+        size_t name_sz = var_tok.To<Id>().size();
+        auto *name_buf_rt = __ CreateAlloca(I8_T, I64(name_sz + 1));
+        for (size_t i = 0; i <= name_sz; i++) {
+            auto *name_buf_rt_with_offset = __ CreateAdd(name_buf_rt, I64(i));
+            __ CreateStore(I8(name[i]), name_buf_rt_with_offset);
+        }
+        __ CreateCall(GetFunc("PrintNum"), CreateArgs({typed_var_ref.second, name_buf_rt}));
     }
 private:
     llvm::Function *cur_f_ {};

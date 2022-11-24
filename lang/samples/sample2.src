@@ -2,6 +2,7 @@
     Num x_scope_test = 5656;
     Num i = 0;
     Num sz = 5;
+    x_scope_test?;
     while (i < sz) {
         i = i + 1;
         Num x_scope_test = 5757;
@@ -16,6 +17,15 @@
         sz?;
         x_scope_test?;
     };
-    sz?;
+
+    Num ch1 = 5;
+    if (i == 5) {
+        Num ans = 43948;
+        ans ?;
+    };
+    if (i < 5) {
+        Num ans = -1;
+        ans ?; 
+    };
     x_scope_test?;
 }

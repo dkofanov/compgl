@@ -7,7 +7,7 @@ extern "C" int yylex (void);
 %}
 
 %%
-[#].*$ {}
+[/][/].*$ {}
 [\t] { abort(); }
 [ \n] {}
 
@@ -51,6 +51,9 @@ if {
 [*/] {
     yylval = yytext;
     return OP2;
+}
+[:] {
+    return COLON;
 }
 [;] {
     return STATEMENT_TERMINATOR;
