@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
         return 2;
     }
 
-    yydebug = 0;
+    yydebug = 1;
     yyin = file;
     IRG.CreateIR();
     IRG.LaunchEE();

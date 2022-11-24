@@ -23,22 +23,33 @@ using tok = Token;
 %token E_END
 %token ID
 %token ASSIGN
+%token IF
+%token WHILE
 %token CONSOLE_OBSERVE_VAR
 
 %%
 FUNCTION: BB;
 
 BB:
-B_BEGIN  { __ BeginBB();} STATEMENT_SEQ B_END;
+    B_BEGIN  { __ BeginSB();} STATEMENT_SEQ B_END { $$ = tok( __ EndSB()); };
 
 STATEMENT_SEQ:
-    STATEMENT {printf("ReadStatement\n");} STATEMENT_TERMINATOR STATEMENT_SEQ |
+    STATEMENT STATEMENT_TERMINATOR STATEMENT_SEQ |
     %empty;
 
 STATEMENT:
     VAR_INITIALIZATION |
+    LOOP_WHILE |
     VAR_PRINT;
 
+LOOP_WHILE:
+    WHILE E_BEGIN {
+        // Insert scope that incapsulates loop body and header:
+        __ BeginLinkedSB();
+    } COMPARISON[cmp] E_END BB[bb] {
+        __ FinalizeLoopWhile($cmp, $bb);
+        __ EndSB();
+    };
 
 COMPARISON:
     ARITHM_EXPRESSION OP0 ARITHM_EXPRESSION {
@@ -46,16 +57,22 @@ COMPARISON:
     };
 
 VAR_INITIALIZATION:
-    VAR_DECL_LOCAL ASSIGN INITIALIZER {
+    VAR_DECL_SCOPE ASSIGN INITIALIZER {
         $$ = tok( __ CreateStore($1, $3));
+    } |
+    ID[var] ASSIGN INITIALIZER[initializer] {
+        auto typed_var_ref = __ ResolveVar($var);
+        __ CreateStore(typed_var_ref.second, $initializer);
+        // return pointer:
+        $$ = tok(typed_var_ref.second);
     };
 
 INITIALIZER:
     ARITHM_EXPRESSION;
 
-VAR_DECL_LOCAL:
-    ID ID { 
-        $$ = tok( __ DeclareLocalVar($1, $2));
+VAR_DECL_SCOPE:
+    ID[type] ID[var_name] { 
+        $$ = tok( __ DeclareLocalVar($type, $var_name));
     };
 
 VAR_PRINT:

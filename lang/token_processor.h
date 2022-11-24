@@ -28,29 +28,16 @@ public:
     using Id = std::string;
     using Type = llvm::Type *;
     using Value = llvm::Value *;
+    using BB = llvm::BasicBlock *;
 
-    using val_t = std::variant<Num, Op, Id, Type, Value>;
+    using val_t = std::variant<Num, Op, Id, Type, Value, BB>;
 
-    Num ToNum() const
+    template<typename T>
+    T To() const
     {
-        return *std::get_if<Num>(&val_);
+        return *std::get_if<T>(&val_);
     }
-    Op ToOp() const
-    {
-        return *std::get_if<Op>(&val_);
-    }
-    Id ToId() const
-    {
-        return *std::get_if<Id>(&val_);
-    }
-    Type ToType() const
-    {
-        return *std::get_if<Type>(&val_);
-    }
-    Value ToValue() const
-    {
-        return *std::get_if<Value>(&val_);
-    }
+
     Token operator=(Num num)
     {
         val_ = num;
@@ -61,19 +48,11 @@ public:
     {
         val_ = 0;
     }
-    Token(Value val)
+    
+    template <typename T>
+    Token(const T &val)
     {
         val_ = val;
-    }
-
-    Token(Type type)
-    {
-        val_ = type;
-    }
-
-    Token(const Id &str)
-    {
-        val_ = str;
     }
 
     Token(char *character)

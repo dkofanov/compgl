@@ -21,6 +21,10 @@ public:
     using tokcr_t = const token_t &;
     using Value = token_t::Value;
     using Type = token_t::Type;
+    using Op = token_t::Op;
+    using Id = token_t::Id;
+    using BB = token_t::BB;
+    using Num = token_t::Num;
     using TypedRef = std::pair<Type, Value>;
 
 public:
@@ -166,7 +170,9 @@ public:
         DeclarePrimitiveTypes();
         //DeclareFunctions();
         CreateMain();
-
+        DumpIr(); 
+    }
+    void DumpIr() {
         module_->print(llvm::outs(), nullptr);
     }
 
@@ -184,34 +190,75 @@ public:
     }
 
     std::string GenBBName() {
-        return std::string("bb_" + std::to_string(blocks_counter_));
         blocks_counter_++;
+        return std::string("bb_" + std::to_string(blocks_counter_));
     }
-    void BeginBB() {
-        auto *bb = llvm::BasicBlock::Create(context_, GenBBName(), cur_f_);
-        __ SetInsertPoint(bb);
+
+    void BeginSB() {
+        auto *entry_bb = CreateBB();
+        blocks_stack_.push_back(entry_bb);
+        variables_scopes_stack_.push_back({});
+        __ SetInsertPoint(entry_bb);
+    }
+    
+    void BeginLinkedSB() {
+        auto *entry_bb = CreateBB();
+        __ CreateBr(entry_bb);
+        blocks_stack_.push_back(entry_bb);
+        variables_scopes_stack_.push_back({});
+        __ SetInsertPoint(entry_bb);
+    }
+
+    BB CreateBB() {
+        return llvm::BasicBlock::Create(context_, GenBBName(), cur_f_);
+    }
+    
+    BB EndSB() {
+        auto bb = blocks_stack_.back();
+        blocks_stack_.pop_back();
+        variables_scopes_stack_.pop_back();
+        return bb;
+    }
+
+    auto GetCurSBlock() const {
+        return blocks_stack_.back();
+    }
+
+    void FinalizeLoopWhile(tokcr_t cmp_tok, tokcr_t loop_body_tok) {
+        auto loop_body = loop_body_tok.To<BB>();
+        auto cmp = cmp_tok.To<Value>();
+        auto loop_header = GetCurSBlock();
+        auto continuation = CreateBB();
+
+        // Link basic blocks:
+        // __ SetInsertPoint(loop_body);
+        __ CreateBr(loop_header);
+
+        __ SetInsertPoint(loop_header);
+        __ CreateCondBr(cmp, loop_body, continuation);
+        __ SetInsertPoint(continuation);
     }
 
     Value DeclareLocalVar(tokcr_t type_id, tokcr_t var_name) {
-        auto *type = ResolveTypeByName(type_id.ToId());
+        auto *type = ResolveTypeByName(type_id.To<Id>());
         auto *var_ref = __ CreateAlloca(type, I64(1));
-        variables_scopes_stack_.front().insert({var_name.ToId(), {type, var_ref}});
+        variables_scopes_stack_.back().insert({var_name.To<Id>(), {type, var_ref}});
         return var_ref;
     }
     
     Value CreateStore(tokcr_t ptr, tokcr_t value) {
-        __ CreateStore(value.ToValue(), ptr.ToValue());
-        return ptr.ToValue();
+        __ CreateStore(value.To<Value>(), ptr.To<Value>());
+        return ptr.To<Value>();
     }
 
     Value CreateNum(tokcr_t num) {
-        return I64(num.ToNum());
+        return I64(num.To<Num>());
     }
 
     TypedRef ResolveVar(tokcr_t var_id) {
         for (auto scope = variables_scopes_stack_.rbegin(); scope != variables_scopes_stack_.rend(); scope++) {
-            if (scope->find(var_id.ToId()) != scope->end()) {
-                return (*scope)[var_id.ToId()];
+            if (scope->find(var_id.To<Id>()) != scope->end()) {
+                return (*scope)[var_id.To<Id>()];
             }
         }
         // undefined var
@@ -220,8 +267,8 @@ public:
 
     Value LoadVar(tokcr_t var_id) {
         for (auto scope = variables_scopes_stack_.rbegin(); scope != variables_scopes_stack_.rend(); scope++) {
-            if (scope->find(var_id.ToId()) != scope->end()) {
-                auto typed_var_ref = (*scope)[var_id.ToId()];
+            if (scope->find(var_id.To<Id>()) != scope->end()) {
+                auto typed_var_ref = (*scope)[var_id.To<Id>()];
                 return __ CreateLoad(typed_var_ref.first, typed_var_ref.second);
             }
         }
@@ -230,16 +277,16 @@ public:
     }
 
     Value CreateOp(tokcr_t op, tokcr_t lhs, tokcr_t rhs) {
-        switch(op.ToOp())
+        switch(op.To<Op>())
         {
             case Token::Op::ADD: {
-                return __ CreateAdd(lhs.ToValue(), rhs.ToValue());
+                return __ CreateAdd(lhs.To<Value>(), rhs.To<Value>());
             } case Token::Op::SUB: {
-                return __ CreateSub(lhs.ToValue(), rhs.ToValue());
+                return __ CreateSub(lhs.To<Value>(), rhs.To<Value>());
             } case Token::Op::MUL: {
-                return __ CreateMul(lhs.ToValue(), rhs.ToValue());
+                return __ CreateMul(lhs.To<Value>(), rhs.To<Value>());
             } case Token::Op::DIV: {
-                return __ CreateSDiv(lhs.ToValue(), rhs.ToValue());
+                return __ CreateSDiv(lhs.To<Value>(), rhs.To<Value>());
             }
             default: UNREACHABLE();
         }
@@ -247,7 +294,7 @@ public:
     
     Value CreateCmp(tokcr_t cmp_pred, tokcr_t lhs, tokcr_t rhs) {
         llvm::CmpInst::Predicate pred;
-        switch(cmp_pred.ToOp())
+        switch(cmp_pred.To<Op>())
         {
             case Token::Op::CMP_EQ: {
                 pred = llvm::CmpInst::Predicate::ICMP_EQ;
@@ -270,12 +317,12 @@ public:
             }
             default: UNREACHABLE();
         }
-        return __ CreateICmp(pred, lhs.ToValue(), rhs.ToValue());
+        return __ CreateICmp(pred, lhs.To<Value>(), rhs.To<Value>());
     }
 private:
     llvm::Function *cur_f_ {};
     std::vector<HashTypedReferences> variables_scopes_stack_ {};
-    std::vector<HashTypedReferences> blocks_stack_ {};
+    std::vector<BB> blocks_stack_ {};
 
     size_t blocks_counter_ {};
 };

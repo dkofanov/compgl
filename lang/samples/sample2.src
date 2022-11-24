@@ -1,0 +1,21 @@
+{
+    Num x_scope_test = 5656;
+    Num i = 0;
+    Num sz = 5;
+    while (i < sz) {
+        i = i + 1;
+        Num x_scope_test = 5757;
+        Num j = 0;
+        Num sz = 2;
+        while (j < sz) {
+            j = j + 1;
+            j?;
+            sz?;
+            x_scope_test?;
+        };
+        sz?;
+        x_scope_test?;
+    };
+    sz?;
+    x_scope_test?;
+}

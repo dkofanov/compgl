@@ -17,6 +17,14 @@ extern "C" int yylex (void);
 [(] { return E_BEGIN; }
 [)] { return E_END; }
 
+while {
+    return WHILE;
+}
+
+if {
+    return IF;
+}
+
 [a-zA-Z_][a-zA-Z0-9_]* {
     yylval = std::string(yytext);
     return ID;
