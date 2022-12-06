@@ -219,6 +219,7 @@ protected:
         return storage_.types_.back();
     }
 
+public:
     llvm::ConstantInt *I8(int8_t val)
     {
         return llvm::ConstantInt::get(__ getInt8Ty(), val, true);
@@ -234,6 +235,7 @@ protected:
         return llvm::ConstantInt::get(__ getInt64Ty(), val, true);
     }
 
+protected:
     llvm::Function *GetFunc(const std::string &fn)
     {
         return module_->getFunction(fn);
@@ -418,9 +420,9 @@ public:
         __ SetInsertPoint(continuation);
     }
 
-    Value DeclareLocalVar(tokcr_t type_id, tokcr_t var_name) {
+    Value DeclareLocalVar(tokcr_t type_id, tokcr_t var_name, Value ar_length) {
         auto *type = ResolveTypeByName(type_id.To<Id>());
-        auto *var_ref = __ CreateAlloca(type, I64(1));
+        auto *var_ref = __ CreateAlloca(type, ar_length);
         variables_scopes_stack_.back().insert({var_name.To<Id>(), {type, var_ref}});
         return var_ref;
     }
@@ -463,21 +465,24 @@ public:
     }
 
     TypedRef ResolveVar(tokcr_t var_id) {
+        const Id &var_name = var_id.To<Id>();
         // Try resolve local vars:
         for (auto scope = variables_scopes_stack_.rbegin(); scope != variables_scopes_stack_.rend(); scope++) {
-            if (scope->find(var_id.To<Id>()) != scope->end()) {
-                return (*scope)[var_id.To<Id>()];
+            if (scope->find(var_name) != scope->end()) {
+                return (*scope)[var_name];
             }
         }
-        // Try resolve member of implicit 'this':
+        // Try resolve explicit 'this':
         constexpr size_t implicit_this_idx = 0;
         auto implicit_this = GetCurrentFunction()->getArg(implicit_this_idx);
+        if (var_name == "this") {
+            ASSERT(!implicit_this->hasByValAttr());
+            return {GetCurrentObject()->LowerToType(),  implicit_this};
+        }
+        // Try resolve member of implicit 'this'; hits UNREACHABLE on failure:
         auto typed_idx = object_stack_.back()->GetMemberTypedIdx(var_id.To<Id>());
         auto gep = __ CreateGEP(object_stack_.back()->LowerToType(), implicit_this, CreateArgs({I64(0), I32(typed_idx.second)}));
         return {typed_idx.first, gep};
-
-        // undefined var
-        UNREACHABLE();
     }
 
     Value LoadVar(tokcr_t var_id) {

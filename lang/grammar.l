@@ -23,6 +23,8 @@ using tok = Token;
 %token E_BEGIN
 %token B_END
 %token E_END
+%token A_BEGIN
+%token A_END
 %token ID
 %token ASSIGN
 %token IF
@@ -105,8 +107,11 @@ COMPARISON:
     };
 
 VAR_DECL_SCOPE:
+    ID[var_name] COLON ID[type] A_BEGIN ARITHM_EXPRESSION[ar_len] A_END { 
+        $$ = tok( __ DeclareLocalVar($type, $var_name, $ar_len.To<Value>()));
+    } |
     ID[var_name] COLON ID[type] { 
-        $$ = tok( __ DeclareLocalVar($type, $var_name));
+        $$ = __ DeclareLocalVar($type, $var_name, __ I64(1));
     };
 
 VAR_INITIALIZATION:
