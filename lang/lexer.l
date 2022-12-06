@@ -14,6 +14,9 @@ extern "C" int yylex (void);
 [{] { return B_BEGIN; }
 [}] { return B_END; }
 
+[[] { return A_BEGIN; }
+[]] { return A_END; }
+
 [(] { return E_BEGIN; }
 [)] { return E_END; }
 
@@ -27,11 +30,16 @@ if {
 
 [a-zA-Z_][a-zA-Z0-9_]* {
     yylval = std::string(yytext);
+    printf("Token ([%s])\n", yytext);
     return ID;
 }
 [-]?[0-9]+ {
     yylval = atol(yytext);
     return NUM;
+}
+
+[-][>] {
+    return RIGHT_ARROW;
 }
 
 !=|==|>=|<=|<|> {
@@ -58,7 +66,9 @@ if {
 [;] {
     return STATEMENT_TERMINATOR;
 }
-
+[.] {
+    return DOT;
+}
 [?] {
     return CONSOLE_OBSERVE_VAR;
 }

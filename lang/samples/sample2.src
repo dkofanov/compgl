@@ -1,3 +1,4 @@
+__ENTRY () -> () :
 {
     Num x_scope_test = 5656;
     Num i = 0;
@@ -20,7 +21,7 @@
 
     Num ch1 = 5;
     if (i == 5) {
-        Num ans = 43948;
+        Num ans = -6076293039126697044;
         ans ?;
     };
     if (i < 5) {

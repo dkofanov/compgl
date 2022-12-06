@@ -1,20 +1,46 @@
+Point (
+    x:Num;
+    y:Num;
+) -> () : {}
 
-UserFunction (
+CustomObject (
     a0:Num;
     a1:Num;
     a2:Num;
 ) -> (
+    // public
     ret1:Num;
     ret2:Num;
+    p0:Point;
 ) : {
-    ret = a0 + a1 * a2;
-};
+    ret1 = (a0 + a1) * a2;
+    ret2 = a0 + a1 * a2;
+    p0.x = ret1;
+    p0.y = ret2;
+    a0 = 3;
 
+    a0?;
+    a1?;
+    a2?;
+    ret1?;
+    ret2?;
+    p0.x?;
+    p0.y?;
+}
 
-UserClass (
-    Nested1 (
+main () -> (ret:Num;) : {
+    obj:CustomObject;
+    obj.a0 = 1;
+    obj.a1 = 2;
+    obj.a2 = 3;
 
-    );
-    memb1:Nested1;
-    
-);
+    obj();
+
+    obj.a0?;
+    obj.a1?;
+    obj.a2?;
+    obj.ret1?;
+    obj.ret2?;
+    obj.p0.x?;
+    obj.p0.y?;
+}

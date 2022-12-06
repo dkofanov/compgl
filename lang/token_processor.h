@@ -10,6 +10,8 @@
 
 #define YYSTYPE Token
 
+class ObjectTemplate;
+
 class Token {
 public:
     enum class Op {
@@ -29,8 +31,9 @@ public:
     using Type = llvm::Type *;
     using Value = llvm::Value *;
     using BB = llvm::BasicBlock *;
-
-    using val_t = std::variant<Num, Op, Id, Type, Value, BB>;
+    using Object = ObjectTemplate *;
+    using TypedRef = std::pair<Type, Value>;
+    using val_t = std::variant<Num, Op, Id, Type, Value, BB, Object, TypedRef>;
 
     template<typename T>
     T To() const
