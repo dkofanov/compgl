@@ -1,0 +1,25 @@
+FibonacciCalc (
+    start_0:Num;
+    start_1:Num;
+    iters:Num;
+) -> (
+    ret:Num;
+) : {
+    if (iters > 0) {
+        iters = iters - 1;
+        ret = start_0 + start_1;
+        start_0 = start_1;
+        start_1 = ret;
+        this();
+    };
+}
+
+main () -> (ret:Num;) : {
+    fib:FibonacciCalc;
+    fib.start_0 = 0;
+    fib.start_1 = 1;
+    fib.iters = 5;
+
+    fib();
+    fib.ret?;
+}

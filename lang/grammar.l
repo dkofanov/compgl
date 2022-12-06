@@ -60,9 +60,11 @@ DEFINE_OUTPUT:
     ID[name] COLON ID[type] { __ GetCurrentObject()->AddOutput($name.To<Token::Id>(), __ ResolveTypeByName($type.To<Token::Id>())); } 
 
 MEMBER_FUNCTION:
-    { __ BeginMemberFunction(); }
-    SCOPED_BLOCK[entry_bb] { 
+    { 
+        __ BeginMemberFunction(); 
         __ GetCurrentObject()->SetInitializer( __ GetCurrentFunction());
+    }
+    SCOPED_BLOCK[entry_bb] { 
         __ EndMemberFunction();
     };
 

@@ -476,6 +476,7 @@ public:
         constexpr size_t implicit_this_idx = 0;
         auto implicit_this = GetCurrentFunction()->getArg(implicit_this_idx);
         if (var_name == "this") {
+            ASSERT(implicit_this != nullptr);
             ASSERT(!implicit_this->hasByValAttr());
             return {GetCurrentObject()->LowerToType(),  implicit_this};
         }
