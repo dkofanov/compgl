@@ -41,35 +41,35 @@ OBJ_DECLARATION:
     ID[typename_alias] { __ BeginObject($typename_alias.To<Token::Id>()); } DEFINE_OBJECT { __ EndObject($typename_alias.To<Token::Id>()); };
 
 DEFINE_OBJECT:
-    E_BEGIN DEFINE_INPUTS_SEQ E_END RIGHT_ARROW
-    E_BEGIN DEFINE_OUTPUTS_SEQ E_END COLON
+    E_BEGIN DEFINE_INITIALIZERS_SEQ E_END RIGHT_ARROW
+    E_BEGIN DEFINE_MEMBERS_SEQ E_END COLON
     MEMBER_FUNCTION;
 
-DEFINE_INPUTS_SEQ:
+DEFINE_INITIALIZERS_SEQ:
     %empty |
-    DEFINE_INPUTS_SEQ DEFINE_INPUT STATEMENT_TERMINATOR;
+    DEFINE_INITIALIZERS_SEQ DEFINE_INITIALIZER STATEMENT_TERMINATOR;
 
-DEFINE_OUTPUTS_SEQ:
+DEFINE_MEMBERS_SEQ:
     %empty |
-    DEFINE_OUTPUTS_SEQ DEFINE_OUTPUT STATEMENT_TERMINATOR;
+    DEFINE_MEMBERS_SEQ DEFINE_MEMBER STATEMENT_TERMINATOR;
 
-DEFINE_INPUT:
-    ID[name] COLON ID[type] { __ GetCurrentObject()->AddInput($name.To<Token::Id>(), __ ResolveTypeByName($type.To<Token::Id>())); } 
+DEFINE_INITIALIZER:
+    ID[name] COLON ID[type] { __ GetCurrentObject()->AddInitializer($name.To<Id>(), __ ResolveTypeByName($type.To<Id>())); } 
 
-DEFINE_OUTPUT:
-    ID[name] COLON ID[type] { __ GetCurrentObject()->AddOutput($name.To<Token::Id>(), __ ResolveTypeByName($type.To<Token::Id>())); } 
+DEFINE_MEMBER:
+    ID[name] COLON ID[type] { __ GetCurrentObject()->AddMember($name.To<Id>(), __ ResolveTypeByName($type.To<Id>())); } 
 
 MEMBER_FUNCTION:
     { 
         __ BeginMemberFunction(); 
-        __ GetCurrentObject()->SetInitializer( __ GetCurrentFunction());
+        __ GetCurrentObject()->SetFunction( __ GetCurrentFunction());
     }
     SCOPED_BLOCK[entry_bb] { 
         __ EndMemberFunction();
     };
 
 SCOPED_BLOCK:
-    B_BEGIN  { __ BeginSB();} STATEMENT_SEQ B_END { $$ = tok( __ EndSB()); };
+    B_BEGIN  { __ BeginSB();} STATEMENT_SEQ B_END { $$ = __ EndSB(); };
 
 STATEMENT_SEQ:
     STATEMENT STATEMENT_TERMINATOR STATEMENT_SEQ |
@@ -110,7 +110,8 @@ COMPARISON:
 
 VAR_DECL_SCOPE:
     ID[var_name] COLON ID[type] A_BEGIN ARITHM_EXPRESSION[ar_len] A_END { 
-        $$ = tok( __ DeclareLocalVar($type, $var_name, $ar_len.To<Value>()));
+        __ DeclareLocalVar($type, $var_name, $ar_len.To<Value>());
+        $$ = __ PromoteToArray($var_name);
     } |
     ID[var_name] COLON ID[type] { 
         $$ = __ DeclareLocalVar($type, $var_name, __ I64(1));
@@ -155,7 +156,7 @@ RVALUE:
         $$ = tok( __ CreateNum($1));
     } |
     XVALUE_REF[xval_ref] {
-        $$ = tok( __ LoadRef($xval_ref.To<Token::TypedRef>()));
+        $$ = __ LoadRef($xval_ref.To<TypedRef>());
     } |
     E_BEGIN ARITHM_EXPRESSION E_END {
         $$ = $2;
@@ -163,11 +164,21 @@ RVALUE:
 
 XVALUE_REF:
     ID[obj] DOT {
-        __ AppendAccessChain($obj.To<Token::Id>());
+        __ AppendAccessChain($obj.To<Id>());
     } XVALUE_REF[xval]  { $$ = $xval; } |
+
+    ID[ptr] A_BEGIN ARITHM_EXPRESSION[offset] A_END DOT {
+        __ AppendAccessChain($ptr.To<Id>(), $offset.To<Value>());
+    } XVALUE_REF[xval]  { $$ = $xval; } |
+
+    ID[last_ptr] A_BEGIN ARITHM_EXPRESSION[offset] A_END {
+        __ AppendAccessChain($last_ptr.To<Id>(), $offset.To<Value>());
+        $$ =  __ ResolveAccessChain();
+    }|
+
     ID[last_obj] {
-        __ AppendAccessChain($last_obj.To<Token::Id>());
-        $$ = tok ( __ ResolveAccessChain());
+        __ AppendAccessChain($last_obj.To<Id>());
+        $$ =  __ ResolveAccessChain();
     };
 
 LVALUE_REF:

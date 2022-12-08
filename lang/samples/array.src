@@ -1,1 +1,72 @@
-ENG
+Point (
+    x:Num;
+    y:Num;
+) -> (): {}
+
+Eng (
+    p1:Point;
+    p2:Point;
+) -> (
+) : {
+    
+}
+
+main (
+    eng:Eng;
+) -> () :
+{
+    ar1:Eng[10];
+    ar2:Eng[10];
+    ar3:Eng[10];
+    idx:Num;
+
+    // init first ar:
+    idx = 0; while (idx < 10) {
+        ar1[idx].p1.x = idx;
+        ar1[idx].p1.y = idx;
+        ar1[idx].p2.x = idx;
+        ar1[idx].p2.y = idx;
+        idx = idx + 1;
+    };
+    // init second ar:
+    idx = 0; while (idx < 10) {
+        ar2[idx].p1.x = idx;
+        ar2[idx].p1.y = idx * 10;
+        ar2[idx].p2.x = idx * 100;
+        ar2[idx].p2.y = idx * 1000;
+        idx = idx + 1;
+    };
+
+    // add arrays second ar:
+    idx = 0; while (idx < 10) {
+        ar3[idx].p1.x = ar1[idx].p1.x + ar2[idx].p1.x;
+        ar3[idx].p1.y = ar1[idx].p1.y + ar2[idx].p1.y;
+        ar3[idx].p2.x = ar1[idx].p2.x + ar2[idx].p2.x;
+        ar3[idx].p2.y = ar1[idx].p2.y + ar2[idx].p2.y;
+        idx = idx + 1;
+    };
+
+    // dump arrays
+    idx = 0; while (idx < 10) {
+        ar1[idx].p1.x?;
+        ar1[idx].p1.y?;
+        ar1[idx].p2.x?;
+        ar1[idx].p2.y?;
+        idx = idx + 1;
+    };
+    idx = 0; while (idx < 10) {
+        ar2[idx].p1.x?;
+        ar2[idx].p1.y?;
+        ar2[idx].p2.x?;
+        ar2[idx].p2.y?;
+        idx = idx + 1;
+    };
+    idx = 0; while (idx < 10) {
+        ar3[idx].p1.x?;
+        ar3[idx].p1.y?;
+        ar3[idx].p2.x?;
+        ar3[idx].p2.y?;
+        idx = idx + 1;
+    };
+
+}

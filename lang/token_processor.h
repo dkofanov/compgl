@@ -80,13 +80,13 @@ public:
                     val_ = Op::CMP_EQ;
                     return;
                 }
-                UNREACHABLE();
+                UNREACHABLE("Unknown token: " << *(character) << *(character + 1));
             } case '!': {
                 if (*(character + 1) == '=') {
                     val_ = Op::CMP_NE;
                     return;
                 } 
-                UNREACHABLE();
+                UNREACHABLE("Unknown token: " << *(character) << *(character + 1));
             } case '>': {
                 if (*(character + 1) == '=') {
                     val_ = Op::CMP_GE;
@@ -95,7 +95,7 @@ public:
                     val_ = Op::CMP_GT;
                     return;
                 }
-                UNREACHABLE();
+                UNREACHABLE("Unknown token: " << *(character) << *(character + 1));
             } case '<': {
                 if (*(character + 1) == '=') {
                     val_ = Op::CMP_LE;
@@ -104,13 +104,12 @@ public:
                     val_ = Op::CMP_LT;
                     return;
                 }
-                UNREACHABLE();
+                UNREACHABLE("Unknown token: " << *(character) << *(character + 1));
             }
             
             default:
-                UNREACHABLE();
+                UNREACHABLE("Unknown token: " << *(character));
         }
-        UNREACHABLE();
     }
 
 private:

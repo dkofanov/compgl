@@ -1,11 +1,10 @@
 FibonacciCalc (
+    iters:Num;
     start_0:Num;
     start_1:Num;
-    iters:Num;
-) -> (
-    ret:Num;
-) : {
+) -> () : {
     if (iters > 0) {
+        ret:Num;
         iters = iters - 1;
         ret = start_0 + start_1;
         start_0 = start_1;
@@ -14,12 +13,16 @@ FibonacciCalc (
     };
 }
 
-main () -> (ret:Num;) : {
+main (
+    ret:Num;
+) -> () : {
     fib:FibonacciCalc;
-    fib.start_0 = 0;
+    st:Num;
+    st = 0;
+    fib.start_0 = st;
     fib.start_1 = 1;
-    fib.iters = 5;
+    fib.iters = 11;
 
     fib();
-    fib.ret?;
+    fib.start_1?;
 }

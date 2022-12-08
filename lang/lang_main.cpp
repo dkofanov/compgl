@@ -2,9 +2,9 @@
 
 Type ObjectTemplate::LowerToType() {
     if (ll_type_ == nullptr) {
-        auto struct_fields = irg_->ConcatTypesVectors(inputs_.types_, outputs_.types_);
+        auto struct_fields = irg_->ConcatTypesVectors(initializers_.types_, members_.types_);
         if (struct_fields.empty()) {
-            UNREACHABLE();
+            UNREACHABLE("(FIXME) Object should have at least 1 member");
         } else {
             ll_type_ = llvm::StructType::create(struct_fields, name_);
         }

@@ -42,11 +42,11 @@ class IRGenBase;
    class ObjectTemplate {
     public:
         ObjectTemplate(IRGenBase *irg) : irg_(irg) {}
-        void AddInput(const Id& name, const Type &type) {
-            inputs_.Add(name, type);
+        void AddInitializer(const Id& name, const Type &type) {
+            initializers_.Add(name, type);
         }
-        void AddOutput(const Id& name, const Type &type) {
-            outputs_.Add(name, type);
+        void AddMember(const Id& name, const Type &type) {
+            members_.Add(name, type);
         }
         void SetName(const Id &name) {
             name_ = name;
@@ -55,17 +55,17 @@ class IRGenBase;
             return name_;
         }
         TypedIdx GetMemberTypedIdx(const Id &name) {
-            if (inputs_.Contains(name)) {
-                return inputs_.GetElementIdx(name);
-            } else if (outputs_.Contains(name)) {
-                auto typed_idx = outputs_.GetElementIdx(name);
-                return {typed_idx.first, typed_idx.second + inputs_.Size()};
+            if (initializers_.Contains(name)) {
+                return initializers_.GetElementIdx(name);
+            } else if (members_.Contains(name)) {
+                auto typed_idx = members_.GetElementIdx(name);
+                return {typed_idx.first, typed_idx.second + initializers_.Size()};
             }
-            UNREACHABLE();
+            UNREACHABLE("Unknown var name: " << name);
         }
 
-        void SetInitializer(llvm::Function *initializer) {
-            initializer_ = initializer;
+        void SetFunction(llvm::Function *func) {
+            func_ = func;
         }
     
         Type LowerToType();
@@ -74,8 +74,8 @@ class IRGenBase;
             return llvm::PointerType::getUnqual(LowerToType());
         }
         
-        auto *GetInitializer() {
-            return initializer_;
+        auto *GetFunction() {
+            return func_;
         }
     private:
         struct Members {
@@ -106,9 +106,9 @@ class IRGenBase;
             VectorTypes types_ {};
         };
         IRGenBase *irg_ {};
-        Members inputs_ {};
-        Members outputs_ {};
-        llvm::Function *initializer_ {};
+        Members initializers_ {};
+        Members members_ {};
+        llvm::Function *func_ {};
         Type ll_type_ {};
         Id name_ {};
     };
@@ -322,7 +322,7 @@ public:
     }
 
     void InvokeObject(ObjectTemplate *obj, Value obj_ptr) {
-        __ CreateCall(obj->GetInitializer(), CreateArgs({obj_ptr}));
+        __ CreateCall(obj->GetFunction(), CreateArgs({obj_ptr}));
     }
 
     ObjectTemplate *GetCurrentObject() {
@@ -426,6 +426,19 @@ public:
         variables_scopes_stack_.back().insert({var_name.To<Id>(), {type, var_ref}});
         return var_ref;
     }
+
+    Value PromoteToArray(tokcr_t var_name) {
+        // if it is an array, typed_ref.second->getType() is a type of array element;
+        for (auto scope = variables_scopes_stack_.rbegin(); scope != variables_scopes_stack_.rend(); scope++) {
+            if (scope->find(var_name.To<Id>()) != scope->end()) {
+                auto typed_ref = (*scope)[var_name.To<Id>()];
+                auto type_ptr = llvm::PointerType::getUnqual(typed_ref.first);
+                (*scope)[var_name.To<Id>()] = {type_ptr, typed_ref.second};
+                return typed_ref.second;
+            }
+        }
+        UNREACHABLE("Can't promote to pointer: " << var_name.To<Id>());
+    }
     
     Value CreateStore(tokcr_t ptr, tokcr_t value) {
         __ CreateStore(value.To<Value>(), ptr.To<Value>());
@@ -436,20 +449,43 @@ public:
         return I64(num.To<Num>());
     }
 
-    void AppendAccessChain(const Id &var_id) {
-        temp_access_chain_.push_back(var_id);
+    void AppendAccessChain(const Id &var_id, Value offset = nullptr) {
+        temp_access_chain_.push_back({var_id, offset});
     }
     
     TypedRef ResolveAccessChain() {
         ASSERT(temp_access_chain_.size() > 0);
-        auto var0_typed_ref = ResolveVar(temp_access_chain_[0]);
+        const auto &var_name = temp_access_chain_[0].first;
+        auto offset = temp_access_chain_[0].second;
+        auto var0_typed_ref = ResolveVar(var_name);
         auto current_type = var0_typed_ref.first;
         auto current_ref = var0_typed_ref.second;
+        if (current_type->isPointerTy()) {
+            // TODO: support pure pointers
+            ASSERT((offset != nullptr) || (temp_access_chain_.size() == 1));
+            if (temp_access_chain_.size() == 1) {
+                offset = I64(0);
+            }
+            current_ref = __ CreateGEP(current_ref->getType()->getPointerElementType(), current_ref, CreateArgs({offset}));
+        }
         for (size_t i = 1; i < temp_access_chain_.size(); i++) {
-            if (current_type->isStructTy()) {
-                auto struct_name = static_cast<llvm::StructType *>(current_type)->getName();
-                auto typed_idx = GetDeclaredHLType(struct_name)->GetMemberTypedIdx(temp_access_chain_[i]);
-                current_ref = __ CreateGEP(current_type, current_ref, CreateArgs({I64(0), I32(typed_idx.second)}));
+            if (!current_type->isIntegerTy()) {
+                const auto &pending_var_name = temp_access_chain_[i].first;
+                auto pending_offset = temp_access_chain_[i].second;
+
+                // TODO: support pure pointers
+                ASSERT(current_ref->getType()->isPointerTy());
+                ASSERT(current_ref->getType()->getPointerElementType()->isStructTy());
+                auto struct_ty = current_ref->getType()->getPointerElementType();
+                
+                auto struct_name = static_cast<llvm::StructType *>(struct_ty)->getName();
+                auto typed_idx = GetDeclaredHLType(struct_name)->GetMemberTypedIdx(pending_var_name);
+                if (!typed_idx.first->isPointerTy()) {
+                    pending_offset = I64(0);
+                } else {
+                    ASSERT(pending_offset != nullptr);
+                }
+                current_ref = __ CreateGEP(struct_ty, current_ref, CreateArgs({pending_offset, I32(typed_idx.second)}));
                 current_type = typed_idx.first;
             } else {
                 ASSERT(i == (temp_access_chain_.size() - 1));
@@ -492,6 +528,9 @@ public:
     }
 
     Value LoadRef(TypedRef typed_ref) {
+        if (typed_ref.first->isPointerTy()) {
+            return typed_ref.second;
+        }
         return __ CreateLoad(typed_ref.first, typed_ref.second);
     }
 
@@ -507,7 +546,7 @@ public:
             } case Token::Op::DIV: {
                 return __ CreateSDiv(lhs.To<Value>(), rhs.To<Value>());
             }
-            default: UNREACHABLE();
+            default: UNREACHABLE("Unknown op: " << static_cast<size_t>(op.To<Op>()));
         }
     }
     
@@ -534,7 +573,7 @@ public:
                 pred = llvm::CmpInst::Predicate::ICMP_SLT;
                 break;
             }
-            default: UNREACHABLE();
+            default: UNREACHABLE("Unknown cmp_pred: " << static_cast<size_t>(cmp_pred.To<Op>()));
         }
         return __ CreateICmp(pred, lhs.To<Value>(), rhs.To<Value>());
     }
@@ -559,7 +598,7 @@ private:
     std::vector<BB> blocks_stack_ {};
     std::vector<ObjectTemplate *> object_stack_ {};
     std::unordered_map<std::string, ObjectTemplate *> declared_hl_types_ {};
-    std::vector<std::string> temp_access_chain_ {};
+    std::vector<std::pair<std::string, Value>> temp_access_chain_ {};
     size_t blocks_counter_ {};
 };
 
