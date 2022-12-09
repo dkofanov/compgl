@@ -54,6 +54,9 @@ DEFINE_MEMBERS_SEQ:
     DEFINE_MEMBERS_SEQ DEFINE_MEMBER STATEMENT_TERMINATOR;
 
 DEFINE_INITIALIZER:
+    ID[name] COLON ID[type] A_BEGIN A_END { 
+        __ GetCurrentObject()->AddInitializer($name.To<Id>(), __ ResolveTypeByName<true>($type.To<Id>()));
+    } | 
     ID[name] COLON ID[type] { __ GetCurrentObject()->AddInitializer($name.To<Id>(), __ ResolveTypeByName($type.To<Id>())); } 
 
 DEFINE_MEMBER:
@@ -111,7 +114,7 @@ COMPARISON:
 VAR_DECL_SCOPE:
     ID[var_name] COLON ID[type] A_BEGIN ARITHM_EXPRESSION[ar_len] A_END { 
         __ DeclareLocalVar($type, $var_name, $ar_len.To<Value>());
-        $$ = __ PromoteToArray($var_name);
+        $$ = __ PromoteToLocalArray($var_name);
     } |
     ID[var_name] COLON ID[type] { 
         $$ = __ DeclareLocalVar($type, $var_name, __ I64(1));

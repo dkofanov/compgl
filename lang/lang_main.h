@@ -154,7 +154,11 @@ public:
         declared_types_[name] = type;
     }
 
+    template <bool is_ptr = false>
     Type ResolveTypeByName(const std::string &type) {
+        if constexpr (is_ptr) {
+            return llvm::PointerType::getUnqual(declared_types_[type]);
+        }
         return declared_types_[type];
     }
 
@@ -171,13 +175,14 @@ public:
         llvm::GenericValue gv = ee->runFunction(main_, noargs);
     }
 
-    static void PrintNum(void *ptr) {
-        printf("0x");
+    static void PrintNum(void *ptr, char *name) {
+        printf("%p: 0x", ptr);
         for (size_t i = 0; i < sizeof(token_t::Num); i++) {
             printf("%02hhX", *(static_cast<char *>(ptr) + i));
         }
-        std::cout << " ( var " << " = " << *(static_cast<token_t::Num *>(ptr)) << ')'  << std::endl;
+        std::cout << " ( `" << name << "` = " << *(static_cast<token_t::Num *>(ptr)) << ')'  << std::endl;
     }
+    
 protected:
     // Storage:
     llvm::ArrayRef<llvm::Type *> CreateArgsType(const std::vector<llvm::Type *> &vec)
@@ -217,6 +222,11 @@ protected:
         storage_.types_.push_back(vec1);
         storage_.types_.back().insert(storage_.types_.back().end(), vec2.begin(), vec2.end());
         return storage_.types_.back();
+    }
+
+    std::string *AllocateEmptyString() {
+        storage_.strings_.push_back("");
+        return &storage_.strings_.back();
     }
 
 public:
@@ -262,6 +272,7 @@ protected:
             values_.reserve(100);
             func_args_.reserve(100);
             func_args_types_.reserve(100);
+            strings_.reserve(100);
         }
     public:
         // llvm::ArrayRefs should point to this storage:
@@ -271,6 +282,7 @@ protected:
         std::vector<llvm::Value *> values_ {};
         std::vector<std::vector<llvm::Type *>> types_ {};
         std::vector<ObjectTemplate> objects_ {};
+        std::vector<std::string> strings_ {};
     } storage_;
 
     friend ObjectTemplate;
@@ -422,12 +434,17 @@ public:
 
     Value DeclareLocalVar(tokcr_t type_id, tokcr_t var_name, Value ar_length) {
         auto *type = ResolveTypeByName(type_id.To<Id>());
-        auto *var_ref = __ CreateAlloca(type, ar_length);
+        if (type == nullptr) {
+            UNREACHABLE("Unknown typename: " << type_id.To<Id>());
+        }
+        Value var_ref = __ CreateAlloca(type, ar_length);
+        // stack allocation is reversed:
+        //var_ref = __ CreateGEP(var_ref->getType()->getPointerElementType(), var_ref, CreateArgs({ar_length}));
         variables_scopes_stack_.back().insert({var_name.To<Id>(), {type, var_ref}});
         return var_ref;
     }
 
-    Value PromoteToArray(tokcr_t var_name) {
+    Value PromoteToLocalArray(tokcr_t var_name) {
         // if it is an array, typed_ref.second->getType() is a type of array element;
         for (auto scope = variables_scopes_stack_.rbegin(); scope != variables_scopes_stack_.rend(); scope++) {
             if (scope->find(var_name.To<Id>()) != scope->end()) {
@@ -460,37 +477,80 @@ public:
         auto var0_typed_ref = ResolveVar(var_name);
         auto current_type = var0_typed_ref.first;
         auto current_ref = var0_typed_ref.second;
-        if (current_type->isPointerTy()) {
-            // TODO: support pure pointers
-            ASSERT((offset != nullptr) || (temp_access_chain_.size() == 1));
-            if (temp_access_chain_.size() == 1) {
-                offset = I64(0);
-            }
-            current_ref = __ CreateGEP(current_ref->getType()->getPointerElementType(), current_ref, CreateArgs({offset}));
+        if ((current_type->isPointerTy()) && (current_type != current_ref->getType())) {
+            current_ref = __ CreateLoad(current_type, current_ref);
+            current_type = current_type->getPointerElementType();
+        }
+        
+        /*
+        {
+            ASSERT(current_type->isPointerTy());
+            auto elem_ty = current_type->getPointerElementType();
+            ASSERT(elem_ty->isStructTy() || 
+                    ((elem_ty->isPointerTy() || elem_ty->isIntegerTy()) && (temp_access_chain_.size() == 1)) ||
+                    (elem_ty->isPointerTy() && temp_access_chain_[1].second != nullptr));
+        }
+        if (offset != nullptr) {
+            // dereference array elem:
+            current_ref = __ CreateGEP(current_type, current_ref, CreateArgs({offset}));
+            current_ref = __ CreateLoad(current_type, current_ref);
+        }
+        */
+        if ((offset != nullptr) && (temp_access_chain_.size() == 1)) {
+            // resolve elem by offset here as main loop wouldn't be hit:
+            current_type = current_ref->getType()->getPointerElementType();
+            current_ref = __ CreateGEP(current_type, current_ref, CreateArgs({offset}));
         }
         for (size_t i = 1; i < temp_access_chain_.size(); i++) {
-            if (!current_type->isIntegerTy()) {
+            if (current_type->isPointerTy()) {
+                ASSERT((temp_access_chain_.size() == (i + 1)) || (offset != nullptr));
+                if (offset != nullptr) {
+                    current_type = current_type->getPointerElementType();
+                }
+            } else {
+                ASSERT(offset == nullptr);
+            }
+            if (current_type->isStructTy()) {
                 const auto &pending_var_name = temp_access_chain_[i].first;
                 auto pending_offset = temp_access_chain_[i].second;
 
                 // TODO: support pure pointers
                 ASSERT(current_ref->getType()->isPointerTy());
-                ASSERT(current_ref->getType()->getPointerElementType()->isStructTy());
-                auto struct_ty = current_ref->getType()->getPointerElementType();
+                //ASSERT(current_ref->getType()->getPointerElementType()->isStructTy() ||
+                  //      (current_ref->getType()->getPointerElementType()->isPointerTy() && offset != nullptr));
+
                 
-                auto struct_name = static_cast<llvm::StructType *>(struct_ty)->getName();
+                auto struct_name = static_cast<llvm::StructType *>(current_type)->getName();
                 auto typed_idx = GetDeclaredHLType(struct_name)->GetMemberTypedIdx(pending_var_name);
-                if (!typed_idx.first->isPointerTy()) {
-                    pending_offset = I64(0);
-                } else {
-                    ASSERT(pending_offset != nullptr);
+                if (offset == nullptr) {
+                    offset = I64(0);
                 }
-                current_ref = __ CreateGEP(struct_ty, current_ref, CreateArgs({pending_offset, I32(typed_idx.second)}));
+                current_ref = __ CreateGEP(current_type, current_ref, CreateArgs({offset, I32(typed_idx.second)}));
                 current_type = typed_idx.first;
+                offset = pending_offset;
             } else {
                 ASSERT(i == (temp_access_chain_.size() - 1));
             }
         }
+
+        auto full_var_name = AllocateEmptyString();
+        (*full_var_name).append(temp_access_chain_[0].first);
+        if (temp_access_chain_[0].second != nullptr) {
+            (*full_var_name).append("[");
+            (*full_var_name).append(temp_access_chain_[0].second->getName());
+            (*full_var_name).append("]");
+        }
+        for (size_t i = 1; i < temp_access_chain_.size(); i++) {
+            (*full_var_name).append(".");
+            (*full_var_name).append(temp_access_chain_[i].first);
+            if (temp_access_chain_[i].second != nullptr) {
+                (*full_var_name).append("[");
+                (*full_var_name).append(temp_access_chain_[i].second->getName());
+                (*full_var_name).append("]");
+            }
+        }
+        (*full_var_name).append(":ref:");
+        current_ref->setName(*full_var_name);
         temp_access_chain_.clear();
         return {current_type, current_ref};
     }
@@ -522,16 +582,13 @@ public:
         return {typed_idx.first, gep};
     }
 
-    Value LoadVar(tokcr_t var_id) {
-        auto typed_var_ref = ResolveVar(var_id);
-        return __ CreateLoad(typed_var_ref.first, typed_var_ref.second);
-    }
-
     Value LoadRef(TypedRef typed_ref) {
-        if (typed_ref.first->isPointerTy()) {
+        if (typed_ref.first == typed_ref.second->getType()) {
             return typed_ref.second;
         }
-        return __ CreateLoad(typed_ref.first, typed_ref.second);
+        auto loaded =  __ CreateLoad(typed_ref.first, typed_ref.second);
+        loaded->setName(typed_ref.second->getName() + "rslvd::");
+        return loaded;
     }
 
     Value CreateOp(tokcr_t op, tokcr_t lhs, tokcr_t rhs) {
@@ -580,17 +637,19 @@ public:
 
     void CreateCallIntrinsicPrintVar(tokcr_t lval_ref_tok) {
         auto lval_ref = lval_ref_tok.To<TypedRef>().second;
-        /*
-        const char *name = var_tok.To<Id>().c_str();
-        size_t name_sz = var_tok.To<Id>().size();
+        
+        auto name = lval_ref->getName();
+        size_t name_sz = name.size();
         auto *name_buf_rt = __ CreateAlloca(I8_T, I64(name_sz + 1));
         
-        for (size_t i = 0; i <= name_sz; i++) {
+        for (size_t i = 0; i < name_sz; i++) {
             auto *name_buf_rt_with_offset = __ CreateAdd(name_buf_rt, I64(i));
             __ CreateStore(I8(name[i]), name_buf_rt_with_offset);
         }
-        */
-        __ CreateCall(GetFunc("PrintNum"), CreateArgs({lval_ref}));
+        auto *name_buf_rt_with_offset = __ CreateAdd(name_buf_rt, I64(name_sz));
+        __ CreateStore(I8(0), name_buf_rt_with_offset);
+        
+        __ CreateCall(GetFunc("PrintNum"), CreateArgs({lval_ref, name_buf_rt}));
     }
 private:
     std::vector<llvm::Function *> functions_stack_ {};
