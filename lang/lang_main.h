@@ -477,7 +477,8 @@ public:
         auto var0_typed_ref = ResolveVar(var_name);
         auto current_type = var0_typed_ref.first;
         auto current_ref = var0_typed_ref.second;
-        if ((current_type->isPointerTy()) && (current_type != current_ref->getType())) {
+        if ((current_type->isPointerTy()) && (current_type != current_ref->getType())
+            && ((temp_access_chain_.size() != 1) || (offset != nullptr))) {
             current_ref = __ CreateLoad(current_type, current_ref);
             current_type = current_type->getPointerElementType();
         }
