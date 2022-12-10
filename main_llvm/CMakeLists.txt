@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.0)
 
 include_directories(
-    ../graphics/
+    ${CMAKE_SOURCE_DIR}
 )
 
 add_executable(llvm_main main_llvm.cpp)

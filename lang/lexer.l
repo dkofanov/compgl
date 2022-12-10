@@ -3,13 +3,19 @@
 #include "grammar.l.hpp"
 
 extern "C" int yylex (void);
+size_t line_no = 1;
 
+int yyerror() {
+    printf("lex_error line_no: %lu\n", line_no);
+    return line_no;
+}
 %}
 
 %%
 [/][/].*$ {}
 [\t] { abort(); }
-[ \n] {}
+[ ] { }
+[\n] { line_no++; }
 
 [{] { return B_BEGIN; }
 [}] { return B_END; }
@@ -56,7 +62,7 @@ if {
     yylval = yytext;
     return OP1;
 }
-[*/] {
+[*/%] {
     yylval = yytext;
     return OP2;
 }
@@ -69,7 +75,26 @@ if {
 [.] {
     return DOT;
 }
+[,] {
+    return COMMA;
+}
 [?] {
     return CONSOLE_OBSERVE_VAR;
+}
+
+[#]PUT_PIXOL {
+    return PUT_PIXOL;
+}
+[#]INIT_GRAPHICS {
+    return INIT_GRAPHICS;
+}
+[#]FLUSH {
+    return FLUSH;
+}
+[#]RAND {
+    return RAND;
+}
+[#]SLEEP_US {
+    return SLEEP;
 }
 %%

@@ -19,6 +19,7 @@ public:
         SUB,
         MUL,
         DIV,
+        MOD,
         CMP_EQ,
         CMP_NE,
         CMP_GE,
@@ -74,6 +75,9 @@ public:
                 return;
             } case '/': {
                 val_ = Op::DIV;
+                return;
+            } case '%': {
+                val_ = Op::MOD;
                 return;
             } case '=': {
                 if (*(character + 1) == '=') {

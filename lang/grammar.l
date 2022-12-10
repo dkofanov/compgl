@@ -10,6 +10,15 @@
 using tok = Token;
 #define __ IRG->
 
+extern "C" size_t line_no;
+
+void yyerror (char const *s)
+{
+
+  fprintf (stderr, "%s (lineno:%lu)\n", s, line_no);
+}
+
+
 %}
 
 %token NUM
@@ -30,7 +39,15 @@ using tok = Token;
 %token IF
 %token WHILE
 %token DOT
+%token COMMA
+
 %token CONSOLE_OBSERVE_VAR
+%token PUT_PIXOL
+%token INIT_GRAPHICS
+%token FLUSH
+%token RAND
+%token SLEEP
+
 
 %%
 PROGRAM: /* use right-recursion to resolve obj-obj link issues: */
@@ -84,7 +101,8 @@ STATEMENT:
     IF_STATEMENT |
     WHILE_STATEMENT |
     OBJ_INVOCATION |
-    VAR_PRINT;
+    VAR_PRINT |
+    GRAPHIC_INTRINSICS;
 
 WHILE_STATEMENT:
     WHILE E_BEGIN {
@@ -107,7 +125,7 @@ IF_STATEMENT:
     };
 
 COMPARISON:
-    ARITHM_EXPRESSION OP0 ARITHM_EXPRESSION {
+    RVALUE OP0 RVALUE {
         $$ = tok( __ CreateCmp($2, $1, $3));
     };
 
@@ -130,7 +148,8 @@ VAR_INITIALIZATION:
     };
 
 INITIALIZER:
-    ARITHM_EXPRESSION;
+    ARITHM_EXPRESSION |
+    INTRINSIC_RAND;
 
 
 VAR_PRINT:
@@ -156,7 +175,7 @@ TERM:
 
 RVALUE:
     NUM {
-        $$ = tok( __ CreateNum($1));
+        $$ = __ CreateNum($1);
     } |
     XVALUE_REF[xval_ref] {
         $$ = __ LoadRef($xval_ref.To<TypedRef>());
@@ -166,23 +185,22 @@ RVALUE:
     };
 
 XVALUE_REF:
-    ID[obj] DOT {
-        __ AppendAccessChain($obj.To<Id>());
-    } XVALUE_REF[xval]  { $$ = $xval; } |
-
-    ID[ptr] A_BEGIN ARITHM_EXPRESSION[offset] A_END DOT {
+    DOT XVALUE_REF[xval] { $$ = $xval; }
+    |
+    ID[ptr] A_BEGIN
+    { __ AccessChainAllocCtx(); }
+    ARITHM_EXPRESSION[offset]
+    { __ AccessChainFreeCtx(); } 
+    A_END {
         __ AppendAccessChain($ptr.To<Id>(), $offset.To<Value>());
-    } XVALUE_REF[xval]  { $$ = $xval; } |
+    } XVALUE_REF[xval]  { $$ = $xval; }
+    |
+    ID[obj] {
+        __ AppendAccessChain($obj.To<Id>());
+    } XVALUE_REF[xval]  { $$ = $xval; }
+    |
+    %empty { $$ =  __ ResolveAccessChain(); };
 
-    ID[last_ptr] A_BEGIN ARITHM_EXPRESSION[offset] A_END {
-        __ AppendAccessChain($last_ptr.To<Id>(), $offset.To<Value>());
-        $$ =  __ ResolveAccessChain();
-    }|
-
-    ID[last_obj] {
-        __ AppendAccessChain($last_obj.To<Id>());
-        $$ =  __ ResolveAccessChain();
-    };
 
 LVALUE_REF:
     XVALUE_REF;
@@ -195,6 +213,24 @@ OBJ_INVOCATION:
         auto struct_ll_type = static_cast<llvm::StructType *>(ll_type);
         auto obj_template = __ GetDeclaredHLType(struct_ll_type->getName());
         __ InvokeObject(obj_template, this_pointer);
+    }
+
+GRAPHIC_INTRINSICS:
+    PUT_PIXOL E_BEGIN RVALUE[x] COMMA RVALUE[y] E_END {
+        __ intrinsicPutPixol($x.To<Value>(), $y.To<Value>());
+    } |
+    INIT_GRAPHICS E_BEGIN RVALUE[w] COMMA RVALUE[h] COMMA RVALUE[scale] E_END {
+        __ intrinsicInitGraphics($w.To<Value>(), $h.To<Value>(), $scale.To<Value>());
+    } |
+    FLUSH E_BEGIN E_END {
+        __ intrinsicFlush();
+    } |
+    SLEEP E_BEGIN RVALUE[us] E_END {
+        __ intrinsicSleep($us.To<Value>());
+    };
+    
+INTRINSIC_RAND: RAND E_BEGIN E_END {
+        $$ = __ intrinsicRand();
     }
 
 %%

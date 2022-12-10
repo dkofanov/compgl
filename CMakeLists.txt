@@ -10,6 +10,9 @@ find_package(OpenGL REQUIRED)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 set(GLVM_BINARY_DIR ${CMAKE_BINARY_DIR})
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+include_directories(
+    ${CMAKE_SOURCE_DIR}
+)
 
 find_package(LLVM REQUIRED)
 

@@ -57,6 +57,4 @@ main () -> (r:Num;) : {
         array[idx]?;
         idx = idx + 1;
     };
-
-
 }

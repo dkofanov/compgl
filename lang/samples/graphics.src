@@ -1,0 +1,215 @@
+ENG(
+    w_:Num;
+    h_:Num;
+    world_:Num[];
+    world_mirror_:Num[];
+    swap_temp_:Num[];
+) -> () : {}
+
+ENG_SetVal(
+    x_:Num;
+    y_:Num;
+
+) -> () : {
+}
+
+ENG_Calc(
+    eng_:ENG[];
+    x_:Num;
+    y_:Num;
+    val_:Num;
+) -> () : {
+    is_boundary:Num;
+    eng_[0].world_mirror_?;
+    eng_[0].world_?;
+    x_?;
+    y_?;
+    is_boundary = 0;
+    if (x_ == 0) {
+        if (y_ == 0) {
+            if (x_ == (eng_[0].w_ - 1)) {
+                if (y_ == (eng_[0].h_ - 1)) {
+                    is_boundary = 1;
+                };
+            };
+        };
+    };
+
+    if (is_boundary == 1) {
+        eng_[0].world_mirror_[y_ * eng_[0].w_ + x_] = 0;
+    };
+    if (is_boundary == 0) {
+        xmin:Num; xmax:Num; ymin:Num; ymax:Num;
+        count_alives:Num;
+
+        xmin = x_ - 1; xmax = x_ + 1; ymin = y_ - 1; ymax = y_ + 1;
+        count_alives = 0;
+        
+        idx:Num; idx_max:Num;
+        dbx:Num; dby:Num;
+ 
+        
+        idx = 0; idx_max = 3;
+        while (idx < idx_max) {
+            dbx = x_ - 1 + idx;
+            dby = ymax;
+            dbx?;
+            dby?;
+            if (eng_[0].world_[ymax * eng_[0].w_ + x_ - 1 + idx] == 1) {
+                count_alives = count_alives + 1;
+            };
+            idx = idx + 1;
+        };
+
+        idx = 0; idx_max = 3;
+        while (idx < idx_max) {
+            dbx = x_ - 1 + idx;
+            dby = ymin;
+            dbx?;
+            dby?;
+            if (eng_[0].world_[ymin * eng_[0].w_ + x_ - 1 + idx] == 1) {
+                count_alives = count_alives + 1;
+            };
+            idx = idx + 1;
+        };
+
+        if (eng_[0].world_[y_ * eng_[0].w_ + xmin] == 1) {
+            dbx = xmin;
+            dby = y_;
+            dbx?;
+            dby?;
+            count_alives = count_alives + 1;
+        };
+
+        if (eng_[0].world_[y_ * eng_[0].w_ + xmax] == 1) {
+            dbx = xmax;
+            dby = y_;
+            dbx?;
+            dby?;
+            count_alives = count_alives + 1;
+        };
+
+        // Set result:
+        write_back_val:Num;
+        if (eng_[0].world_[y_ * eng_[0].w_ + x_] == 0) {
+            if (count_alives == 3) {
+                write_back_val = 1;
+            };
+            if (count_alives != 3) {
+                write_back_val = 0;
+            };
+        };
+        if (eng_[0].world_[y_ * eng_[0].w_ + x_] == 1) {
+           if (count_alives == 2) {
+                write_back_val = 1;
+           };
+           if (count_alives == 3) {
+                write_back_val = 1;
+           };
+           if (count_alives > 3) {
+                write_back_val = 0;
+           };
+           if (count_alives < 2) {
+                write_back_val = 0;
+           };
+        };
+        eng_[0].world_mirror_[y_ * eng_[0].w_ + x_] = write_back_val;
+        if (write_back_val == 1) {
+            #PUT_PIXOL(x_, y_);
+        };
+    };
+    eng_[0].world_mirror_?;
+    eng_[0].world_?;
+    x_?;
+    y_?;
+}
+
+ENG_Iterate(
+    eng_:ENG[];
+    temp_buf_:Num[];
+) -> () : {
+    idx:Num;
+    calc_and_rend:ENG_Calc;
+    calc_and_rend.eng_ = eng_;
+
+    idx = 0; while (idx < (eng_[0].w_ * eng_[0].h_)) {
+        calc_and_rend.x_ = idx % eng_[0].w_;
+        calc_and_rend.y_ = idx / eng_[0].w_;
+        calc_and_rend();
+
+        idx = idx + 1;
+    };
+    
+    #FLUSH();
+    #SLEEP_US(2000000); // 16000us -> ~50 fps
+
+    temp_buf_ = eng_[0].world_;
+    eng_[0].world_ = eng_[0].world_mirror_;
+    eng_[0].world_mirror_ = temp_buf_;
+    eng_[0].world_?;
+    eng_[0].world_mirror_?;
+}
+
+ENG_FillRand(
+    eng_:ENG[];
+) -> () : {
+    x:Num;
+    y:Num;
+    val:Num;
+    idx:Num;
+
+    idx = 0; while (idx < (eng_[0].w_ * eng_[0].h_)) {
+        x = idx % eng_[0].w_;
+        y = idx / eng_[0].w_;
+        val = #RAND();
+        val = val % 10;
+
+        initval:Num;
+        if (val <= 1) {
+            initval = 1; 
+        };
+        if (val > 1) {
+            initval = 0; 
+        };
+
+        eng_[0].world_[y * eng_[0].w_ + x] = initval;
+
+        idx = idx + 1;
+    };
+
+}
+
+main () -> (r:Num;) : {
+    // Declare data and parameters:
+    width:Num;
+    height:Num;
+    scale:Num;
+    width = 200;
+    height = 200;
+    scale = 10;
+    world:Num[width * height];
+    world_mirror:Num[width * height];
+
+    eng:ENG[1];
+    eng[0].w_ = width;
+    eng[0].h_ = height;
+    eng[0].world_ = world;
+    eng[0].world_mirror_ = world_mirror;
+
+    w_w:Num; w_h:Num;
+    w_w = width * scale; 
+    w_h = height * scale; 
+
+    #INIT_GRAPHICS(w_w, w_h, scale);
+
+    randfill:ENG_FillRand;
+    randfill.eng_ = eng;
+    randfill();
+
+    iterator:ENG_Iterate;
+    iterator.eng_ = eng;
+    
+    while (1 == 1) {
+        iterator();
+    };
+}

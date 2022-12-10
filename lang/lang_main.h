@@ -4,6 +4,7 @@
 #include "lexer_decls.h"
 
 #include "../common/macro.h"
+#include "graphics/graphics.h"
 #include "token_processor.h"
 
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
@@ -164,11 +165,17 @@ public:
 
     void LaunchEE() {
         llvm::ExecutionEngine *ee = llvm::EngineBuilder(std::unique_ptr<llvm::Module>(module_)).create();
+
         ee->InstallLazyFunctionCreator([&](const std::string &fn) -> void *
             {
                 if (fn == "PrintNum") {return reinterpret_cast<void *>(PrintNum);}
-                std::cerr << "NO_FUNC " << fn << std::endl;
-                return nullptr;
+                if (fn == "rand") { return reinterpret_cast<void *>(rand); }
+                if (fn == "usleep") { return reinterpret_cast<void *>(usleep); }
+                if (fn == "GR_Initialize") { return reinterpret_cast<void *>(GR_Initialize); }
+                if (fn == "GR_PutPixel") { return reinterpret_cast<void *>(GR_PutPixel); }
+                if (fn == "GR_Flush") { return reinterpret_cast<void *>(GR_Flush); }
+
+                UNREACHABLE("NO_FUNC " << fn);
             });
         ee->finalizeObject();
         std::vector<llvm::GenericValue> noargs;
@@ -248,7 +255,9 @@ public:
 protected:
     llvm::Function *GetFunc(const std::string &fn)
     {
-        return module_->getFunction(fn);
+        auto f = module_->getFunction(fn);
+        ASSERT(f != nullptr);
+        return f;
     }
 
 protected:
@@ -294,9 +303,9 @@ public:
     
     void CreateIR()
     {
-        //DeclareGlobals();
         DeclarePrimitiveTypes();
-        //DeclareFunctions();
+        DeclareIntrinsics();
+
         ParseScope();
         DumpIr(); 
     }
@@ -358,13 +367,35 @@ public:
     void ParseScope()
     {
         auto *intrinsic = CreateFunction(VOID_T, {PTR_T, I64_T}, "PrintNum");
-
+        AccessChainAllocCtx();
         variables_scopes_stack_.push_back({});
         blocks_counter_ = 0;
         if (yyparse() != 0) {
-            //abort();
+            ParseErrorHandleAndAbort();
         }
+        AccessChainFreeCtx();
         variables_scopes_stack_.pop_back();
+    }
+
+    void ParseErrorHandleAndAbort() {
+        std::cout << "\n# Parsing failed!\n  Print generated ir? (y/n)" << std::endl;
+        char ans = getchar();
+        while (1) {
+            switch (ans)
+            {
+                case 'y':
+                    DumpIr();
+                    exit(-1);
+                case 'n':
+                    exit(-1);
+                case '\n':
+                    ans = getchar();
+                    break;
+                default:
+                    std::cout << "Press (y/n)" << std::endl;
+                    ans = getchar();
+            }
+        }
     }
 
     std::string GenBBName() {
@@ -438,8 +469,6 @@ public:
             UNREACHABLE("Unknown typename: " << type_id.To<Id>());
         }
         Value var_ref = __ CreateAlloca(type, ar_length);
-        // stack allocation is reversed:
-        //var_ref = __ CreateGEP(var_ref->getType()->getPointerElementType(), var_ref, CreateArgs({ar_length}));
         variables_scopes_stack_.back().insert({var_name.To<Id>(), {type, var_ref}});
         return var_ref;
     }
@@ -467,59 +496,47 @@ public:
     }
 
     void AppendAccessChain(const Id &var_id, Value offset = nullptr) {
-        temp_access_chain_.push_back({var_id, offset});
+        temp_access_chain_stack_.back().push_back({var_id, offset});
     }
     
     TypedRef ResolveAccessChain() {
-        ASSERT(temp_access_chain_.size() > 0);
-        const auto &var_name = temp_access_chain_[0].first;
-        auto offset = temp_access_chain_[0].second;
+        ASSERT(temp_access_chain_stack_.back().size() > 0);
+        const auto &var_name = temp_access_chain_stack_.back()[0].first;
+        auto offset = temp_access_chain_stack_.back()[0].second;
         auto var0_typed_ref = ResolveVar(var_name);
         auto current_type = var0_typed_ref.first;
         auto current_ref = var0_typed_ref.second;
-        if ((current_type->isPointerTy()) && (current_type != current_ref->getType())
-            && ((temp_access_chain_.size() != 1) || (offset != nullptr))) {
-            current_ref = __ CreateLoad(current_type, current_ref);
+        bool should_be_dereferenced = ((temp_access_chain_stack_.back().size() != 1) || (offset != nullptr));
+        if ((current_type->isPointerTy())  && should_be_dereferenced) {
+            if (current_type != current_ref->getType()) {
+                // Resolve pure-pointer:
+                current_ref = __ CreateLoad(current_type, current_ref);
+            }
             current_type = current_type->getPointerElementType();
         }
         
-        /*
-        {
-            ASSERT(current_type->isPointerTy());
-            auto elem_ty = current_type->getPointerElementType();
-            ASSERT(elem_ty->isStructTy() || 
-                    ((elem_ty->isPointerTy() || elem_ty->isIntegerTy()) && (temp_access_chain_.size() == 1)) ||
-                    (elem_ty->isPointerTy() && temp_access_chain_[1].second != nullptr));
-        }
-        if (offset != nullptr) {
-            // dereference array elem:
-            current_ref = __ CreateGEP(current_type, current_ref, CreateArgs({offset}));
-            current_ref = __ CreateLoad(current_type, current_ref);
-        }
-        */
-        if ((offset != nullptr) && (temp_access_chain_.size() == 1)) {
+        if ((offset != nullptr) && (temp_access_chain_stack_.back().size() == 1)) {
             // resolve elem by offset here as main loop wouldn't be hit:
-            current_type = current_ref->getType()->getPointerElementType();
+            ASSERT(current_type == current_ref->getType()->getPointerElementType());
             current_ref = __ CreateGEP(current_type, current_ref, CreateArgs({offset}));
         }
-        for (size_t i = 1; i < temp_access_chain_.size(); i++) {
-            if (current_type->isPointerTy()) {
-                ASSERT((temp_access_chain_.size() == (i + 1)) || (offset != nullptr));
+    
+        for (size_t i = 1; i < temp_access_chain_stack_.back().size(); i++) {
+            /*if (current_type->isPointerTy()) {
+                ASSERT((temp_access_chain_stack_.back().size() == (i + 1)) || (offset != nullptr));
                 if (offset != nullptr) {
                     current_type = current_type->getPointerElementType();
                 }
             } else {
                 ASSERT(offset == nullptr);
-            }
+            }*/
+            ASSERT(current_type->isStructTy());
+
             if (current_type->isStructTy()) {
-                const auto &pending_var_name = temp_access_chain_[i].first;
-                auto pending_offset = temp_access_chain_[i].second;
+                const auto &pending_var_name = temp_access_chain_stack_.back()[i].first;
+                auto pending_offset = temp_access_chain_stack_.back()[i].second;
 
-                // TODO: support pure pointers
                 ASSERT(current_ref->getType()->isPointerTy());
-                //ASSERT(current_ref->getType()->getPointerElementType()->isStructTy() ||
-                  //      (current_ref->getType()->getPointerElementType()->isPointerTy() && offset != nullptr));
-
                 
                 auto struct_name = static_cast<llvm::StructType *>(current_type)->getName();
                 auto typed_idx = GetDeclaredHLType(struct_name)->GetMemberTypedIdx(pending_var_name);
@@ -529,31 +546,47 @@ public:
                 current_ref = __ CreateGEP(current_type, current_ref, CreateArgs({offset, I32(typed_idx.second)}));
                 current_type = typed_idx.first;
                 offset = pending_offset;
-            } else {
-                ASSERT(i == (temp_access_chain_.size() - 1));
+                if ((current_type->isPointerTy()) && (current_type != current_ref->getType())
+                    && ((temp_access_chain_stack_.back().size() != (i + 1)) || (offset != nullptr))) {
+                    // Resolve pure-pointer:
+                    current_ref = __ CreateLoad(current_type, current_ref);
+                    current_type = current_type->getPointerElementType();
+                }
+                if (offset != nullptr) {
+                    current_ref = __ CreateGEP(current_type, current_ref, CreateArgs({offset}));
+                }
             }
         }
+        // get ref for array element if the the last particle is array:
+
 
         auto full_var_name = AllocateEmptyString();
-        (*full_var_name).append(temp_access_chain_[0].first);
-        if (temp_access_chain_[0].second != nullptr) {
+        (*full_var_name).append(temp_access_chain_stack_.back()[0].first);
+        if (temp_access_chain_stack_.back()[0].second != nullptr) {
             (*full_var_name).append("[");
-            (*full_var_name).append(temp_access_chain_[0].second->getName());
+            (*full_var_name).append(temp_access_chain_stack_.back()[0].second->getName());
             (*full_var_name).append("]");
         }
-        for (size_t i = 1; i < temp_access_chain_.size(); i++) {
+        for (size_t i = 1; i < temp_access_chain_stack_.back().size(); i++) {
             (*full_var_name).append(".");
-            (*full_var_name).append(temp_access_chain_[i].first);
-            if (temp_access_chain_[i].second != nullptr) {
+            (*full_var_name).append(temp_access_chain_stack_.back()[i].first);
+            if (temp_access_chain_stack_.back()[i].second != nullptr) {
                 (*full_var_name).append("[");
-                (*full_var_name).append(temp_access_chain_[i].second->getName());
+                (*full_var_name).append(temp_access_chain_stack_.back()[i].second->getName());
                 (*full_var_name).append("]");
             }
         }
         (*full_var_name).append(":ref:");
         current_ref->setName(*full_var_name);
-        temp_access_chain_.clear();
+        temp_access_chain_stack_.back().clear();
         return {current_type, current_ref};
+    }
+
+    void AccessChainAllocCtx() {
+        temp_access_chain_stack_.push_back({});
+    }
+    void AccessChainFreeCtx() {
+        temp_access_chain_stack_.pop_back();
     }
 
     ObjectTemplate *GetDeclaredHLType(const Id &name) {
@@ -603,6 +636,8 @@ public:
                 return __ CreateMul(lhs.To<Value>(), rhs.To<Value>());
             } case Token::Op::DIV: {
                 return __ CreateSDiv(lhs.To<Value>(), rhs.To<Value>());
+            } case Token::Op::MOD: {
+                return __ CreateSRem(lhs.To<Value>(), rhs.To<Value>());
             }
             default: UNREACHABLE("Unknown op: " << static_cast<size_t>(op.To<Op>()));
         }
@@ -652,13 +687,45 @@ public:
         
         __ CreateCall(GetFunc("PrintNum"), CreateArgs({lval_ref, name_buf_rt}));
     }
+
+
+    void DeclareIntrinsics()
+    {
+        // declare void @main()
+        CreateFunction(VOID_T, CreateArgsType({I64_T, I64_T, I64_T}), "GR_PutPixel");
+        CreateFunction(VOID_T, CreateArgsType({I64_T, I64_T, I64_T}), "GR_Initialize");
+        CreateFunction(VOID_T, CreateArgsType({}), "GR_Flush");
+        CreateFunction(I64_T, CreateArgsType({}), "rand");
+        CreateFunction(VOID_T, CreateArgsType({I64_T}), "usleep");
+    }
+
+
+    void intrinsicPutPixol(Value x, Value y) {
+        __ CreateCall(GetFunc("GR_PutPixel"), CreateArgs({x, y}));
+    }
+    void intrinsicInitGraphics(Value w, Value h, Value scale) {
+        __ CreateCall(GetFunc("GR_Initialize"), CreateArgs({w, h, scale}));
+    }
+    void intrinsicFlush() {
+        __ CreateCall(GetFunc("GR_Flush"), CreateArgs({}));
+    }
+    
+    void intrinsicSleep(Value x) {
+        __ CreateCall(GetFunc("usleep"), CreateArgs({x}));
+    }
+    Value intrinsicRand() {
+        auto rand = __ CreateCall(GetFunc("rand"), CreateArgs({}));
+        rand->setName("rand_num");
+        return rand;
+    }
+
 private:
     std::vector<llvm::Function *> functions_stack_ {};
     std::vector<HashTypedReferences> variables_scopes_stack_ {};
     std::vector<BB> blocks_stack_ {};
     std::vector<ObjectTemplate *> object_stack_ {};
     std::unordered_map<std::string, ObjectTemplate *> declared_hl_types_ {};
-    std::vector<std::pair<std::string, Value>> temp_access_chain_ {};
+    std::vector<std::vector<std::pair<std::string, Value>>> temp_access_chain_stack_ {};
     size_t blocks_counter_ {};
 };
 

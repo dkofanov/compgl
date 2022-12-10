@@ -20,6 +20,11 @@ add_executable(lang_comp ${LANG_SRC})
 target_include_directories(lang_comp PUBLIC ${GENERATED_DIR})
 target_include_directories(lang_comp PUBLIC ${LANG_SOURCE_DIR})
 
-target_link_libraries(lang_comp fl y LLVM)
+target_link_libraries(lang_comp
+    fl
+    y
+    LLVM
+    graphics
+)
 
 target_compile_options(lang_comp PUBLIC -ggdb3)
