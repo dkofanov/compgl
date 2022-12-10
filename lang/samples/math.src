@@ -1,9 +1,9 @@
 main (r:Num;) -> () : {
     a:Num; b:Num; c:Num; x:Num;
     ar:Num[10];
-    a = 1; b = 2; c = 3;
+    a = 4; b = 2; c = 7;
     
-    x = a * b;
+    x = a * b % c;
     x?;
 
     ar[a * b] = x;

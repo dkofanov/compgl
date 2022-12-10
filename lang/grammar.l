@@ -158,7 +158,7 @@ VAR_PRINT:
     };
 
 ARITHM_EXPRESSION:
-    TERM OP1 ARITHM_EXPRESSION {
+    ARITHM_EXPRESSION OP1 TERM  {
         $$ = tok( __ CreateOp($2, $1, $3));
     } |
 
@@ -167,7 +167,7 @@ ARITHM_EXPRESSION:
     };
 
 TERM:
-    RVALUE OP2 TERM {
+    TERM OP2 RVALUE {
         $$ = tok( __ CreateOp($2, $1, $3));
     } |
     RVALUE;

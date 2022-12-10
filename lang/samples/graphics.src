@@ -20,10 +20,6 @@ ENG_Calc(
     val_:Num;
 ) -> () : {
     is_boundary:Num;
-    eng_[0].world_mirror_?;
-    eng_[0].world_?;
-    x_?;
-    y_?;
     is_boundary = 0;
     if (x_ == 0) {
         if (y_ == 0) {
@@ -51,10 +47,6 @@ ENG_Calc(
         
         idx = 0; idx_max = 3;
         while (idx < idx_max) {
-            dbx = x_ - 1 + idx;
-            dby = ymax;
-            dbx?;
-            dby?;
             if (eng_[0].world_[ymax * eng_[0].w_ + x_ - 1 + idx] == 1) {
                 count_alives = count_alives + 1;
             };
@@ -63,10 +55,6 @@ ENG_Calc(
 
         idx = 0; idx_max = 3;
         while (idx < idx_max) {
-            dbx = x_ - 1 + idx;
-            dby = ymin;
-            dbx?;
-            dby?;
             if (eng_[0].world_[ymin * eng_[0].w_ + x_ - 1 + idx] == 1) {
                 count_alives = count_alives + 1;
             };
@@ -74,18 +62,10 @@ ENG_Calc(
         };
 
         if (eng_[0].world_[y_ * eng_[0].w_ + xmin] == 1) {
-            dbx = xmin;
-            dby = y_;
-            dbx?;
-            dby?;
             count_alives = count_alives + 1;
         };
 
         if (eng_[0].world_[y_ * eng_[0].w_ + xmax] == 1) {
-            dbx = xmax;
-            dby = y_;
-            dbx?;
-            dby?;
             count_alives = count_alives + 1;
         };
 
@@ -118,10 +98,6 @@ ENG_Calc(
             #PUT_PIXOL(x_, y_);
         };
     };
-    eng_[0].world_mirror_?;
-    eng_[0].world_?;
-    x_?;
-    y_?;
 }
 
 ENG_Iterate(
@@ -141,13 +117,11 @@ ENG_Iterate(
     };
     
     #FLUSH();
-    #SLEEP_US(2000000); // 16000us -> ~50 fps
+    #SLEEP_US(16000); // 16000us -> ~50 fps
 
     temp_buf_ = eng_[0].world_;
     eng_[0].world_ = eng_[0].world_mirror_;
     eng_[0].world_mirror_ = temp_buf_;
-    eng_[0].world_?;
-    eng_[0].world_mirror_?;
 }
 
 ENG_FillRand(
@@ -185,8 +159,8 @@ main () -> (r:Num;) : {
     height:Num;
     scale:Num;
     width = 200;
-    height = 200;
-    scale = 10;
+    height = 100;
+    scale = 7;
     world:Num[width * height];
     world_mirror:Num[width * height];
 
