@@ -46,6 +46,7 @@ void yyerror (char const *s)
 %token INIT_GRAPHICS
 %token FLUSH
 %token RAND
+%token SRAND
 %token SLEEP
 
 
@@ -227,6 +228,9 @@ GRAPHIC_INTRINSICS:
     } |
     SLEEP E_BEGIN RVALUE[us] E_END {
         __ intrinsicSleep($us.To<Value>());
+    } |
+    SRAND E_BEGIN RVALUE[seed] E_END {
+        __ intrinsicSrand($seed.To<Value>());
     };
     
 INTRINSIC_RAND: RAND E_BEGIN E_END {

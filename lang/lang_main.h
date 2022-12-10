@@ -170,6 +170,7 @@ public:
             {
                 if (fn == "PrintNum") {return reinterpret_cast<void *>(PrintNum);}
                 if (fn == "rand") { return reinterpret_cast<void *>(rand); }
+                if (fn == "srand") { return reinterpret_cast<void *>(srand); }
                 if (fn == "usleep") { return reinterpret_cast<void *>(usleep); }
                 if (fn == "GR_Initialize") { return reinterpret_cast<void *>(GR_Initialize); }
                 if (fn == "GR_PutPixel") { return reinterpret_cast<void *>(GR_PutPixel); }
@@ -695,6 +696,7 @@ public:
         CreateFunction(VOID_T, CreateArgsType({I64_T, I64_T, I64_T}), "GR_PutPixel");
         CreateFunction(VOID_T, CreateArgsType({I64_T, I64_T, I64_T}), "GR_Initialize");
         CreateFunction(VOID_T, CreateArgsType({}), "GR_Flush");
+        CreateFunction(VOID_T, CreateArgsType({I64_T}), "srand");
         CreateFunction(I64_T, CreateArgsType({}), "rand");
         CreateFunction(VOID_T, CreateArgsType({I64_T}), "usleep");
     }
@@ -712,6 +714,9 @@ public:
     
     void intrinsicSleep(Value x) {
         __ CreateCall(GetFunc("usleep"), CreateArgs({x}));
+    }
+    void intrinsicSrand(Value x) {
+        __ CreateCall(GetFunc("srand"), CreateArgs({x}));
     }
     Value intrinsicRand() {
         auto rand = __ CreateCall(GetFunc("rand"), CreateArgs({}));

@@ -132,6 +132,7 @@ ENG_FillRand(
     val:Num;
     idx:Num;
 
+    #SRAND(222);
     idx = 0; while (idx < (eng_[0].w_ * eng_[0].h_)) {
         x = idx % eng_[0].w_;
         y = idx / eng_[0].w_;
@@ -158,9 +159,9 @@ main () -> (r:Num;) : {
     width:Num;
     height:Num;
     scale:Num;
-    width = 200;
+    width = 250;
     height = 100;
-    scale = 7;
+    scale = 5;
     world:Num[width * height];
     world_mirror:Num[width * height];
 

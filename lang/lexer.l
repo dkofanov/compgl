@@ -97,4 +97,7 @@ if {
 [#]SLEEP_US {
     return SLEEP;
 }
+[#]SRAND {
+    return SRAND;
+}
 %%

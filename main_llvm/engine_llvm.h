@@ -2,7 +2,7 @@
 #define ENGINE_H
 
 #include <stddef.h>
-#include "graphics.h"
+#include "graphics/graphics.h"
 
 
 typedef char pxl_t;
